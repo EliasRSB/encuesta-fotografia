@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Encuesta de fotografía de naturaleza</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Interfaz sin color: nada alrededor de la foto debe sesgar cómo se juzgan saturación, color y temperatura.
+     La foto se mira sobre gris medio (18 %), como en una mesa de edición. */
+  :root { --papel:#efefef; --blanco:#fff; --tinta:#151515; --suave:#5a5a5a; --linea:#c6c6c6; --gris18:#767676;
+          --aviso:#9c4210; --aviso-bg:#f8e6d9; }
+  * { box-sizing:border-box; }
+  html { -webkit-text-size-adjust:100%; }
+  body { margin:0; background:var(--papel); color:var(--tinta);
+         font:17px/1.55 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,sans-serif; }
+  :focus-visible { outline:3px solid var(--tinta); outline-offset:2px; }
+  .mesa :focus-visible { outline-color:#fff; }
+  h1 { font-size:2rem; line-height:1.15; font-weight:700; letter-spacing:-.01em; margin:0 0 .6em; }
+  h2 { font-size:1.35rem; line-height:1.25; margin:0 0 .5em; }
+  p { margin:0 0 1em; max-width:36em; }
+  .suave { color:var(--suave); font-size:.94rem; }
+  .aviso-prueba { background:var(--aviso-bg); color:var(--aviso); font-weight:600; font-size:.92rem; padding:6px 16px; }
+
+  /* Pantallas de entrada: una columna estrecha, alineada a la izquierda */
+  .hoja { max-width:34rem; margin:0 auto; padding:9vh 16px 48px; }
+  .hoja .otro { color:var(--suave); font-size:1.35rem; font-weight:400; display:block; }
+  .acciones { display:flex; flex-wrap:wrap; gap:10px; margin-top:24px; }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  .btn { background:var(--tinta); color:#fff; border:1.5px solid var(--tinta); border-radius:4px; padding:.65em 1.2em; font-weight:600; }
+  .btn.sec { background:transparent; color:var(--tinta); }
+  .btn:disabled { opacity:.45; cursor:progress; }
+  .modulo { text-align:left; display:block; width:100%; padding:16px 18px; margin-bottom:10px; }
+  .modulo span { display:block; font-weight:400; font-size:.94rem; opacity:.85; }
+  label.campo { display:block; font-weight:600; margin:18px 0 6px; }
+  .nota { font-size:.9rem; color:var(--suave); margin:6px 0 0; }
+  select, input[type=text], textarea { font:inherit; color:inherit; width:100%; padding:.55em .7em; background:var(--blanco);
+    border:1.5px solid var(--linea); border-radius:4px; }
+  select:focus, input:focus, textarea:focus { border-color:var(--tinta); }
+  .error { color:var(--aviso); font-weight:600; margin-top:10px; min-height:1.5em; }
+
+  /* Evaluación: la foto a la izquierda, fija; las preguntas a la derecha */
+  .eval { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); align-items:start; }
+  .mesa { background:var(--gris18); color:#fff; position:sticky; top:0; height:100vh; padding:20px 24px;
+          display:flex; flex-direction:column; gap:14px; }
+  .mesa img { flex:1; min-height:0; width:100%; object-fit:contain; }
+  .mesa a { color:#fff; font-size:.92rem; }
+  .marco { display:flex; align-items:center; gap:14px; font-weight:600; font-size:.95rem; }
+  .tira { display:flex; gap:5px; list-style:none; margin:0; padding:0; }
+  .tira li { width:26px; height:17px; border:1.5px solid rgba(255,255,255,.65); border-radius:2px; }
+  .tira li.hecha { background:#fff; border-color:#fff; }
+  .tira li.ahora { border:2.5px solid #fff; }
+  .preguntas { padding:20px clamp(16px,4vw,48px) 72px; max-width:660px; }
+  .q { padding:18px 0; border-top:1px solid var(--linea); }
+  .q[hidden] { display:none; }
+  .preguntas > .q:first-child { border-top:0; }
+  .qt { display:flex; gap:12px; justify-content:space-between; align-items:flex-start; font-weight:600; }
+  .qt small { font-weight:400; color:var(--suave); }
+  .ayudab { flex:none; width:30px; height:30px; border-radius:50%; border:1.5px solid var(--linea); background:var(--blanco);
+            font-weight:700; line-height:1; padding:0; }
+  .ayudab[aria-expanded="true"] { border-color:var(--tinta); }
+  .ayuda { background:var(--blanco); border-left:3px solid var(--gris18); padding:10px 14px; margin-top:10px; font-size:.92rem; }
+  .ayuda p { margin:0 0 8px; } .ayuda dl { margin:0; } .ayuda dt { font-weight:600; } .ayuda dd { margin:0 0 6px; }
+  .ops { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
+  .ops button, .rejilla button { background:var(--blanco); border:1.5px solid var(--linea); border-radius:4px; padding:.38em .8em; }
+  .ops button:hover, .rejilla button:hover { border-color:var(--tinta); }
+  .ops button[aria-pressed="true"], .rejilla button[aria-pressed="true"] { background:var(--tinta); border-color:var(--tinta); color:#fff; }
+  .ops .sep { flex-basis:100%; height:0; }
+  .rejilla { display:grid; grid-template-columns:repeat(3,64px); gap:4px; margin-top:10px; }
+  .rejilla button { height:46px; padding:0; }
+  .texto label { display:flex; gap:8px; align-items:center; margin-top:8px; }
+  .bloque { margin:28px 0 4px; font-size:1.1rem; }
+  .cierre { border-top:1px solid var(--linea); padding-top:18px; }
+  .cierre .acciones { margin-top:14px; }
+
+  @media (max-width:860px) {
+    h1 { font-size:1.7rem; }
+    .eval { display:block; }
+    .mesa { height:40vh; padding:10px 16px; gap:8px; z-index:1; }
+    .preguntas { padding-top:8px; }
+  }
+  @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; } }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+// GENERADO por generar_vocabulario.py desde encuesta_v2_especificacion.md. No editar a mano.
+const VOCAB = {"version":"Versión 2 del 20-nov-2026","nd":"No se puede determinar","noAplica":"No aplica","modulos":{"bio":["B1","P2","B2","B3","B4","B5","B6","B7","P3","B8","B9","B10","B11","P4","B12","P5","B13","B14","B15","B16","B17","B18","P6","B19","B20","B21"],"est":["E0","P7","E1","E2","E3","E4","E5","E6","E7","E8","E9","E10","E11","E12","E13","E14","E15","E16","E17","E18","E19","E20","E21","E22","E23","E24","E25","E26"]},"perfil":{"formacion":{"t":"Formación principal","opciones":["Biología","Ciencias Ambientales","Otra ciencia de la vida o de la Tierra","Diseño o Bellas Artes","Estudios de fotografía o audiovisual","Otra rama"],"en":{"t":"Main field of study","o":{"Biología":"Biology","Ciencias Ambientales":"Environmental Sciences","Otra ciencia de la vida o de la Tierra":"Another life or Earth science","Diseño o Bellas Artes":"Design or Fine Arts","Estudios de fotografía o audiovisual":"Photography or audiovisual studies","Otra rama":"Another field"}}},"nivel":{"t":"Nivel","opciones":["Estudiante de grado","Grado terminado","Máster o doctorado","Profesional sin titulación universitaria"],"en":{"t":"Level","o":{"Estudiante de grado":"Undergraduate student","Grado terminado":"Bachelor's degree completed","Máster o doctorado":"Master's or PhD","Profesional sin titulación universitaria":"Professional without a university degree"}}},"exp_especies":{"t":"Experiencia en identificar especies","opciones":["Ninguna","Básica (reconozco grupos comunes)","Avanzada (identifico a nivel de especie en algún grupo)"],"en":{"t":"Experience identifying species","o":{"Ninguna":"None","Básica (reconozco grupos comunes)":"Basic (I recognise common groups)","Avanzada (identifico a nivel de especie en algún grupo)":"Advanced (I identify to species level in some group)"}}},"exp_fotografia":{"t":"Experiencia en fotografía","opciones":["Ninguna","Afición","Semiprofesional","Profesional"],"en":{"t":"Experience in photography","o":{"Ninguna":"None","Afición":"Hobby","Semiprofesional":"Semi-professional","Profesional":"Professional"}}}},"preguntas":{"P2":{"id":"P2","tipo":"N","t":"¿En qué estado está el organismo que se ve?","opciones":[{"v":"Vivo","d":"el organismo está vivo en la foto."},{"v":"Muerto o parte desprendida","d":"se ve el cuerpo del organismo muerto, o una parte que se ha soltado de él (cadáver, huesos, concha vacía, tronco o rama caídos, hoja caída, pluma suelta, muda de piel, asta caída, seta podrida)."},{"v":"Rastro o indicio","d":"no se ve nada del cuerpo, sino una señal que deja (huella, excremento, nido o tela vacíos, galería, marca de mordisco). Los fósiles también van aquí."},{"v":"No se puede determinar"}],"cuando":[{"p":"B1","en":["Animalia","Plantae","Fungi"]}],"en":{"t":"What state is the organism in?","o":{"Vivo":["Alive","The organism is alive in the photo."],"Muerto o parte desprendida":["Dead, or a detached part","The body of the dead organism is visible, or a part that has come off it (carcass, bones, empty shell, fallen trunk or branch, fallen leaf, loose feather, shed skin, shed antler, rotten mushroom)."],"Rastro o indicio":["Trace or sign","Nothing of the body is visible, only a sign it leaves (track, dropping, empty nest or web, burrow, bite mark). Fossils also go here."],"No se puede determinar":["Cannot be determined",""]}}},"P3":{"id":"P3","tipo":"N","t":"¿Se puede saber el sexo por lo que se ve?","opciones":[{"v":"Sí","d":"hay algún rasgo visible que lo indica (color del plumaje, cuernos o astas, tamaño, órganos externos)."},{"v":"No","d":"no hay ningún rasgo visible que lo indique, o no sé interpretarlo."}],"cuando":[{"p":"B1","en":["Animalia"]},{"p":"P2","no":["Rastro o indicio"]}],"en":{"t":"Can you tell the sex from what you see?","o":{"Sí":["Yes","There is a visible trait that shows it (plumage colour, horns or antlers, size, external organs)."],"No":["No","There is no visible trait that shows it, or I cannot interpret it."]}}},"P4":{"id":"P4","tipo":"N","t":"¿Interactúa con un organismo de otra especie, vivo o muerto, incluido el ser humano?","opciones":[{"v":"Sí","d":"en la foto se ve una relación entre el sujeto y un organismo de otra especie: come, caza, poliniza, parasita, crece sobre él, lo descompone o lo transporta. Posarse un momento sobre una rama no cuenta."},{"v":"No","d":"no hay otro organismo, o lo hay pero sin relación visible."},{"v":"No se puede determinar","d":"hay otro organismo y podría haber relación, pero la foto no deja verlo."}],"cuando":[{"p":"B1","en":["Animalia","Plantae","Fungi","Microorganismo"]}],"en":{"t":"Does it interact with an organism of another species, alive or dead, including humans?","o":{"Sí":["Yes","The photo shows a relationship between the subject and an organism of another species: eating, hunting, pollinating, parasitising, growing on it, decomposing it or carrying it. Briefly perching on a branch does not count."],"No":["No","There is no other organism, or there is one but with no visible relationship."],"No se puede determinar":["Cannot be determined","There is another organism and there could be a relationship, but the photo does not let you see it."]}}},"P5":{"id":"P5","tipo":"N","t":"¿Se ve el entorno del sujeto?","opciones":[{"v":"Sí","d":"se reconoce el lugar alrededor del sujeto. Si alrededor del sujeto solo hay cielo (un ave en vuelo), el entorno es el cielo y la respuesta es «Sí»."},{"v":"Parcialmente","d":"se ve algo del entorno (el suelo, el sustrato, un trozo de vegetación), pero no lo bastante para todo."},{"v":"No","d":"el fondo está recortado, es negro o está desenfocado del todo."}],"cuando":[{"p":"B1","no":["Paisaje"],"salto":"Sí"}],"en":{"t":"Can you see the subject's surroundings?","o":{"Sí":["Yes","The place around the subject can be recognised. If there is only sky around the subject (a bird in flight), the surroundings are the sky and the answer is «Yes»."],"Parcialmente":["Partly","Something of the surroundings is visible (the ground, the substrate, a bit of vegetation), but not enough for everything."],"No":["No","The background is cut out, black or completely out of focus."]}}},"P6":{"id":"P6","tipo":"N","t":"¿Se ve el cielo?","opciones":[{"v":"Sí","d":"se ve una parte del cielo, aunque sea pequeña."},{"v":"No"}],"cuando":[{"p":"P5","no":["No"]}],"en":{"t":"Can you see the sky?","o":{"Sí":["Yes","Part of the sky is visible, even a small one."],"No":["No",""]}}},"P7":{"id":"P7","tipo":"N","t":"¿Hay un sujeto principal definido?","opciones":[{"v":"Sí","d":"hay un organismo, objeto o elemento que destaca sobre el resto y atrae la mirada antes que lo demás. Ejemplos: un animal o una flor; un árbol solitario en un prado; una cima aislada que domina el encuadre; una persona en un paisaje."},{"v":"No","d":"la imagen es un conjunto sin un elemento destacado. Ejemplos: un paisaje amplio sin foco; un bosque visto desde dentro; una textura que llena el encuadre; un cielo estrellado uniforme."}],"en":{"t":"Is there a clearly defined main subject?","o":{"Sí":["Yes","There is an organism, object or element that stands out from the rest and catches the eye before everything else. Examples: an animal or a flower; a lone tree in a meadow; an isolated peak that dominates the frame; a person in a landscape."],"No":["No","The image is a whole with no standout element. Examples: a wide landscape with no focal point; a forest seen from inside; a texture that fills the frame; a uniform starry sky."]}}},"B1":{"id":"B1","tipo":"N","t":"¿Qué es el sujeto principal de la foto?","a":"Reglas para los casos dudosos: Si se reconoce el organismo, gana el organismo, aunque la foto sea muy abstracta (corteza de cerca → Plantae; bosque con movimiento intencionado de cámara → Paisaje, no Abstracto). Un animal sobre una planta o un hongo: el sujeto es el que está enfocado y ocupa más la atención. Si están igual, el animal. Cielo nocturno sobre un paisaje: Cosmos si las estrellas o la Luna ocupan la mayor parte y son el tema; Paisaje si el cielo acompaña. Agua en movimiento (cascadas, ríos, olas en la costa): Paisaje. Fenómeno natural se reserva para fenómenos atmosféricos o geológicos en curso. Animales domésticos y plantas cultivadas van en su reino.","opciones":[{"v":"Animalia","d":"un animal, de cualquier grupo (mamíferos, aves, insectos, arañas, moluscos, corales…)."},{"v":"Plantae","d":"una planta. Por convención, las algas grandes (macroalgas) también van aquí."},{"v":"Fungi","d":"una seta u otro hongo. Los líquenes también van aquí."},{"v":"Microorganismo","d":"organismos que solo se ven al microscopio o como una masa sin individuos distinguibles (tapetes bacterianos, mixomicetos, colonias)."},{"v":"Paisaje","d":"no hay un organismo u objeto destacado; el tema es el lugar en conjunto."},{"v":"Elemento humano","d":"el sujeto principal es una persona, una construcción o un objeto hecho por personas."},{"v":"Fenómeno natural","d":"el tema es un fenómeno físico de la Tierra (rayo, arcoíris, niebla, ola, erupción, aurora)."},{"v":"Cosmos","d":"el tema son los astros o el cielo nocturno (Luna, estrellas, Vía Láctea)."},{"v":"Elemento geológico","d":"el tema son rocas, minerales o formaciones geológicas vistas de cerca. Una montaña o un roquedo vistos de lejos son Paisaje. Un fósil va en el reino del organismo, con P2 = Rastro o indicio."},{"v":"Abstracto","d":"no se reconoce el tema; la imagen se lee como formas, colores o texturas."},{"v":"No se puede determinar"}],"en":{"t":"What is the main subject of the photo?","a":"Rules for doubtful cases: If the organism can be recognised, the organism wins, even if the photo is very abstract (bark close up → Plantae; forest with intentional camera movement → Landscape, not Abstract). An animal on a plant or a fungus: the subject is the one in focus that draws most attention. If they are equal, the animal. Night sky over a landscape: Cosmos if the stars or the Moon take up most of the image and are the theme; Landscape if the sky goes along with it. Moving water (waterfalls, rivers, waves on the coast): Landscape. Natural phenomenon is reserved for atmospheric or geological phenomena in progress. Domestic animals and cultivated plants go in their kingdom.","o":{"Animalia":["Animalia","An animal of any group (mammals, birds, insects, spiders, molluscs, corals…)."],"Plantae":["Plantae","A plant. By convention, large algae (macroalgae) also go here."],"Fungi":["Fungi","A mushroom or another fungus. Lichens also go here."],"Microorganismo":["Microorganism","Organisms only visible under the microscope or as a mass without distinguishable individuals (bacterial mats, slime moulds, colonies)."],"Paisaje":["Landscape","There is no prominent organism or object; the theme is the place as a whole."],"Elemento humano":["Human element","The main subject is a person, a building or an object made by people."],"Fenómeno natural":["Natural phenomenon","The theme is a physical phenomenon of the Earth (lightning, rainbow, fog, wave, eruption, aurora)."],"Cosmos":["Cosmos","The theme is the celestial bodies or the night sky (Moon, stars, Milky Way)."],"Elemento geológico":["Geological element","The theme is rocks, minerals or geological formations seen close up. A mountain or a rocky area seen from afar is Landscape. A fossil goes in the organism's kingdom, as a trace."],"Abstracto":["Abstract","The theme cannot be recognised; the image reads as shapes, colours or textures."],"No se puede determinar":["Cannot be determined",""]}}},"B2":{"id":"B2","tipo":"N","t":"¿El organismo vive libre o lo mantienen las personas?","opciones":[{"v":"Silvestre","d":"vive libre, sin cuidado humano."},{"v":"Doméstico o cultivado","d":"ganado, mascotas, cultivos, jardines o plantas de maceta."},{"v":"En cautividad","d":"zoo, acuario, terrario, invernadero o fotografiado en estudio."},{"v":"No se puede determinar"}],"cuando":[{"p":"B1","en":["Animalia","Plantae","Fungi"]}],"en":{"t":"Does the organism live freely or is it kept by people?","o":{"Silvestre":["Wild","Lives freely, without human care."],"Doméstico o cultivado":["Domestic or cultivated","Livestock, pets, crops, gardens or potted plants."],"En cautividad":["In captivity","Zoo, aquarium, terrarium, greenhouse or photographed in a studio."],"No se puede determinar":["Cannot be determined",""]}}},"B3":{"id":"B3","tipo":"texto","t":"¿Qué organismo es?","a":"Escribe el nombre más preciso que sepas, común o científico (por ejemplo «escarabajo», «Carabus» o «Carabus auratus»). Si no lo sabes, marca «No lo sé».","cuando":[{"p":"B1","en":["Animalia","Plantae","Fungi","Microorganismo"]}],"noSe":"No lo sé","en":{"t":"Which organism is it?","a":"Write the most precise name you know, common or scientific (for example «beetle», «Carabus» or «Carabus auratus»). If you do not know, tick «I don't know»."}},"B4":{"id":"B4","tipo":"N","t":"¿Qué parte del organismo ocupa el foco de la foto?","opciones":{"Animalia":[{"v":"Cuerpo completo","d":"se ve el animal entero, o casi entero."},{"v":"Cabeza","d":"la cabeza ocupa el foco."},{"v":"Tronco","d":"el cuerpo sin la cabeza (tórax, abdomen, lomo)."},{"v":"Extremidades o apéndices","d":"patas, alas, aletas, antenas, cola."},{"v":"Cobertura","d":"detalle del pelo, las plumas, las escamas o la concha."},{"v":"Otra estructura","d":"ojo, pico, garras, cuernos u otra estructura concreta."},{"v":"No se puede determinar"}],"Plantae":[{"v":"Planta completa","d":"se ve la planta entera, o casi entera."},{"v":"Hojas"},{"v":"Flor o inflorescencia","d":"una flor o un grupo de flores."},{"v":"Fruto o semilla"},{"v":"Tallo o tronco","d":"incluye la corteza."},{"v":"Raíz"},{"v":"Otra estructura","d":"yemas, espinas, zarcillos."},{"v":"No se puede determinar"}],"Fungi":[{"v":"Cuerpo fructífero completo","d":"la seta entera."},{"v":"Detalle del cuerpo fructífero","d":"láminas, poros, pie o sombrero de cerca."},{"v":"Liquen","d":"el talo del liquen, entero o en detalle."},{"v":"Micelio","d":"la red de filamentos."},{"v":"Otra estructura"},{"v":"No se puede determinar"}]},"opcionesSegun":"B1","cuando":[{"p":"B1","en":["Animalia","Plantae","Fungi"]},{"p":"P2","no":["Rastro o indicio"]}],"en":{"t":"Which part of the organism is the focus of the photo?","o":{"Cuerpo completo":["Whole body","The whole animal, or almost all of it, is visible."],"Cabeza":["Head","The head is the focus."],"Tronco":["Trunk","The body without the head (thorax, abdomen, back)."],"Extremidades o apéndices":["Limbs or appendages","Legs, wings, fins, antennae, tail."],"Cobertura":["Body covering","Detail of the fur, feathers, scales or shell."],"Otra estructura":["Other structure","Eye, beak, claws, horns or another specific structure."],"No se puede determinar":["Cannot be determined",""],"Planta completa":["Whole plant","The whole plant, or almost all of it, is visible."],"Hojas":["Leaves",""],"Flor o inflorescencia":["Flower or inflorescence","One flower or a group of flowers."],"Fruto o semilla":["Fruit or seed",""],"Tallo o tronco":["Stem or trunk","Includes the bark."],"Raíz":["Root",""],"Cuerpo fructífero completo":["Whole fruiting body","The whole mushroom."],"Detalle del cuerpo fructífero":["Fruiting body detail","Gills, pores, stem or cap close up."],"Liquen":["Lichen","The lichen thallus, whole or in detail."],"Micelio":["Mycelium","The network of filaments."]}}},"B5":{"id":"B5","tipo":"N","t":"¿En qué fase de su vida está el organismo?","opciones":{"Animalia":[{"v":"Huevo"},{"v":"Larva o ninfa","d":"fase inmadura con forma distinta a la del adulto (oruga, renacuajo, ninfa de libélula). Incluye la pupa."},{"v":"Cría o juvenil","d":"individuo joven con forma parecida a la del adulto."},{"v":"Adulto"},{"v":"Varias fases","d":"se ven individuos en fases distintas."},{"v":"No se puede determinar"}],"Plantae":[{"v":"Semilla o plántula","d":"semilla germinando o planta recién nacida."},{"v":"Juvenil","d":"planta joven, aún sin flores ni frutos."},{"v":"Adulta","d":"planta desarrollada, con o sin flores en este momento."},{"v":"Varias fases"},{"v":"No se puede determinar"}]},"opcionesSegun":"B1","cuando":[{"p":"B1","en":["Animalia","Plantae"]},{"p":"P2","no":["Rastro o indicio"]}],"en":{"t":"What stage of its life is the organism in?","o":{"Huevo":["Egg",""],"Larva o ninfa":["Larva or nymph","Immature stage with a different shape from the adult (caterpillar, tadpole, dragonfly nymph). Includes the pupa."],"Cría o juvenil":["Young or juvenile","Young individual shaped like the adult."],"Adulto":["Adult",""],"Varias fases":["Several stages","Individuals at different stages are visible."],"No se puede determinar":["Cannot be determined",""],"Semilla o plántula":["Seed or seedling","Germinating seed or newly sprouted plant."],"Juvenil":["Juvenile","Young plant, still without flowers or fruit."],"Adulta":["Adult","Fully developed plant, with or without flowers at the moment."]}}},"B6":{"id":"B6","tipo":"M","t":"¿Qué fases del ciclo anual se ven en la planta?","max":2,"opciones":[{"v":"Vegetativa","d":"solo hojas y tallos, sin flores ni frutos."},{"v":"Brotación","d":"hojas o yemas nuevas abriéndose."},{"v":"Floración","d":"flores abiertas."},{"v":"Fructificación","d":"frutos formados."},{"v":"Senescencia","d":"hojas secas, amarillas o cayendo; planta marchitándose."},{"v":"No se puede determinar","excl":true}],"cuando":[{"p":"B1","en":["Plantae"]},{"p":"P2","no":["Rastro o indicio"]}],"en":{"t":"Which phases of the yearly cycle can be seen in the plant?","o":{"Vegetativa":["Vegetative","Only leaves and stems, no flowers or fruit."],"Brotación":["Budding","New leaves or buds opening."],"Floración":["Flowering","Open flowers."],"Fructificación":["Fruiting","Formed fruit."],"Senescencia":["Senescence","Dry, yellow or falling leaves; the plant is withering."],"No se puede determinar":["Cannot be determined",""]}}},"B7":{"id":"B7","tipo":"O","t":"¿En qué estado está la seta o el cuerpo fructífero?","opciones":[{"v":"Joven","d":"recién salido, cerrado o pequeño."},{"v":"Maduro","d":"desarrollado del todo, abierto."},{"v":"Senescente o en descomposición","d":"marchito, blando, roto o podrido."},{"v":"No se puede determinar","fuera":true}],"cuando":[{"p":"B1","en":["Fungi"]},{"p":"P2","no":["Rastro o indicio"]},{"p":"B4","no":["Liquen","Micelio"]}],"en":{"t":"What state is the mushroom or fruiting body in?","o":{"Joven":["Young","Just emerged, closed or small."],"Maduro":["Mature","Fully developed, open."],"Senescente o en descomposición":["Senescent or decaying","Withered, soft, broken or rotten."],"No se puede determinar":["Cannot be determined",""]}}},"B8":{"id":"B8","tipo":"N","t":"¿De qué sexo es?","opciones":[{"v":"Macho"},{"v":"Hembra"},{"v":"Ambos","d":"se ven individuos de los dos sexos."}],"cuando":[{"p":"B1","en":["Animalia"]},{"p":"P2","no":["Rastro o indicio"]},{"p":"P3","en":["Sí"],"salto":"No se puede determinar"}],"en":{"t":"What sex is it?","o":{"Macho":["Male",""],"Hembra":["Female",""],"Ambos":["Both","Individuals of both sexes are visible."]}}},"B9":{"id":"B9","tipo":"N","t":"¿Cómo se mueve o qué postura tiene el animal?","a":"Con un huevo o una puesta, la respuesta es «Inmóvil o posado».","opciones":[{"v":"Inmóvil o posado","d":"quieto, apoyado, de pie o tumbado."},{"v":"Caminando o corriendo","d":"se desplaza por el suelo o por una superficie."},{"v":"Saltando"},{"v":"Volando","d":"en el aire, incluido el vuelo estático o planeando."},{"v":"Nadando","d":"se desplaza en el agua, o flota."},{"v":"Trepando","d":"sube o baja por una superficie vertical."},{"v":"No se puede determinar"}],"cuando":[{"p":"B1","en":["Animalia"]},{"p":"P2","en":["Vivo"]}],"en":{"t":"How is the animal moving, or what posture does it have?","a":"With an egg or a clutch of eggs, the answer is «Still or perched».","o":{"Inmóvil o posado":["Still or perched","Still, resting, standing or lying down."],"Caminando o corriendo":["Walking or running","Moving over the ground or a surface."],"Saltando":["Jumping",""],"Volando":["Flying","In the air, including hovering or gliding."],"Nadando":["Swimming","Moving in the water, or floating."],"Trepando":["Climbing","Going up or down a vertical surface."],"No se puede determinar":["Cannot be determined",""]}}},"B10":{"id":"B10","tipo":"M","t":"¿Qué está haciendo el animal?","max":2,"a":"Con un huevo o una puesta, la respuesta es «Ninguna visible». Responde solo a lo que se ve en la foto.","opciones":[{"v":"Ninguna visible","d":"no hace nada reconocible aparte de estar o moverse.","excl":true},{"v":"Alimentación","d":"come, bebe, caza o busca comida."},{"v":"Alerta o vigilancia","d":"atento a algo, con la cabeza erguida o mirando alrededor."},{"v":"Acicalamiento","d":"se limpia, se rasca o se arregla las plumas o el pelo."},{"v":"Vocalización","d":"canta, llama o grita (pico o boca abiertos en postura de canto)."},{"v":"Cortejo o apareamiento","d":"exhibición ante otro individuo o cópula."},{"v":"Cuidado de crías","d":"alimenta, protege o transporta crías o huevos."},{"v":"Construcción","d":"hace un nido, una madriguera, una tela o un refugio."},{"v":"Conflicto o agresión","d":"amenaza, pelea o persigue a otro individuo."},{"v":"Descanso","d":"duerme o reposa con los ojos cerrados o en postura de reposo."},{"v":"No se puede determinar","excl":true}],"cuando":[{"p":"B1","en":["Animalia"]},{"p":"P2","en":["Vivo"]}],"en":{"t":"What is the animal doing?","a":"With an egg or a clutch of eggs, the answer is «No visible activity». Answer only what can be seen in the photo.","o":{"Ninguna visible":["No visible activity","It does nothing recognisable apart from being there or moving."],"Alimentación":["Feeding","Eating, drinking, hunting or looking for food."],"Alerta o vigilancia":["Alert or watching","Attentive to something, head raised or looking around."],"Acicalamiento":["Grooming","Cleaning, scratching or tidying its feathers or fur."],"Vocalización":["Vocalising","Singing, calling or shouting (beak or mouth open in a singing posture)."],"Cortejo o apareamiento":["Courtship or mating","Display towards another individual, or copulation."],"Cuidado de crías":["Caring for young","Feeding, protecting or carrying young or eggs."],"Construcción":["Building","Making a nest, a burrow, a web or a shelter."],"Conflicto o agresión":["Conflict or aggression","Threatening, fighting or chasing another individual."],"Descanso":["Resting","Sleeping or resting with eyes closed or in a resting posture."],"No se puede determinar":["Cannot be determined",""]}}},"B11":{"id":"B11","tipo":"O","t":"¿Cuántos individuos de la misma especie que el sujeto se ven, contando el sujeto?","a":"En plantas y hongos, cuenta los individuos que se distinguen; si forman una masa en la que no se distinguen, elige «No se puede determinar».","opciones":[{"v":"1"},{"v":"2"},{"v":"3–5"},{"v":"6–15"},{"v":"Más de 15"},{"v":"No se puede determinar","fuera":true}],"cuando":[{"p":"B1","en":["Animalia","Plantae","Fungi"]},{"p":"P2","no":["Rastro o indicio"]}],"en":{"t":"How many individuals of the same species as the subject can be seen, counting the subject?","a":"In plants and fungi, count the individuals that can be told apart; if they form a mass where they cannot be told apart, choose «Cannot be determined».","o":{"1":["1",""],"2":["2",""],"3–5":["3–5",""],"6–15":["6–15",""],"Más de 15":["More than 15",""],"No se puede determinar":["Cannot be determined",""]}}},"B12":{"id":"B12","tipo":"N","t":"¿Qué relación tiene el sujeto con el otro organismo?","opciones":[{"v":"Depredación o captura","d":"un animal caza o come a otro animal vivo, o lo lleva capturado."},{"v":"Herbivoría","d":"un animal come una planta, un alga o un hongo, o se ven sus marcas recientes."},{"v":"Carroñeo","d":"un animal come un cadáver."},{"v":"Polinización o visita floral","d":"un animal está en una flor."},{"v":"Dispersión de semillas","d":"un animal transporta frutos o semillas (en la boca, en el pelo)."},{"v":"Parasitismo","d":"un organismo vive sobre o dentro de otro y se alimenta de él (garrapatas, muérdago, agallas)."},{"v":"Otra simbiosis mutualista","d":"beneficio para los dos que no es polinización ni dispersión (hormigas que cuidan pulgones, peces limpiadores)."},{"v":"Comensalismo o foresia","d":"uno se beneficia, por transporte o refugio, sin afectar al otro (ácaros sobre un escarabajo, rémora)."},{"v":"Epifitismo","d":"una planta, un liquen o un musgo crece sobre otra planta sin alimentarse de ella."},{"v":"Competencia","d":"organismos de especies distintas se disputan un recurso visible (comida, espacio)."},{"v":"Descomposición de materia muerta","d":"hongos, bacterias o invertebrados descomponen madera, hojarasca o restos."},{"v":"Con el ser humano","d":"alimentación, captura, manipulación o contacto directo con personas."}],"cuando":[{"p":"B1","en":["Animalia","Plantae","Fungi","Microorganismo"]},{"p":"P4","en":["Sí"],"salto":{"No":"Ninguna","No se puede determinar":"No se puede determinar"}}],"en":{"t":"What is the relationship between the subject and the other organism?","o":{"Depredación o captura":["Predation or capture","An animal hunts or eats another live animal, or carries it captured."],"Herbivoría":["Herbivory","An animal eats a plant, an alga or a fungus, or its recent marks are visible."],"Carroñeo":["Scavenging","An animal eats a carcass."],"Polinización o visita floral":["Pollination or flower visit","An animal is on a flower."],"Dispersión de semillas":["Seed dispersal","An animal carries fruit or seeds (in its mouth, in its fur)."],"Parasitismo":["Parasitism","An organism lives on or inside another and feeds on it (ticks, mistletoe, galls)."],"Otra simbiosis mutualista":["Other mutualism","Benefit for both that is not pollination or dispersal (ants tending aphids, cleaner fish)."],"Comensalismo o foresia":["Commensalism or phoresy","One benefits, by transport or shelter, without affecting the other (mites on a beetle, remora)."],"Epifitismo":["Epiphytism","A plant, lichen or moss grows on another plant without feeding on it."],"Competencia":["Competition","Organisms of different species compete for a visible resource (food, space)."],"Descomposición de materia muerta":["Decomposition of dead matter","Fungi, bacteria or invertebrates break down wood, leaf litter or remains."],"Con el ser humano":["With humans","Feeding, capture, handling or direct contact with people."]}}},"B13":{"id":"B13","tipo":"N","t":"¿En qué medio está el sujeto?","a":"Si no hay un organismo destacado, responde por el lugar que domina la imagen.","opciones":[{"v":"Terrestre","d":"sobre el suelo, la vegetación o la roca, fuera del agua."},{"v":"Agua dulce","d":"en un río, un lago, una charca o un humedal, o en su orilla inmediata."},{"v":"Marino","d":"en el mar, en la superficie o bajo el agua."},{"v":"Litoral","d":"la franja entre mar y tierra (playa, acantilado, roca intermareal, marisma costera)."},{"v":"Aéreo","d":"el sujeto está en el aire y alrededor solo se ve cielo. Si se ve el terreno o el agua debajo, responde por ese medio (un ave sobre un prado es Terrestre)."},{"v":"Subterráneo","d":"cueva, mina o interior del suelo."},{"v":"No se puede determinar"}],"cuando":[{"p":"P5","no":["No"],"salto":"No se puede determinar"}],"en":{"t":"What environment is the subject in?","a":"If there is no prominent organism, answer for the place that dominates the image.","o":{"Terrestre":["Terrestrial","On the ground, vegetation or rock, out of the water."],"Agua dulce":["Freshwater","In a river, lake, pond or wetland, or on its immediate shore."],"Marino":["Marine","In the sea, at the surface or underwater."],"Litoral":["Coastal","The strip between sea and land (beach, cliff, intertidal rock, coastal marsh)."],"Aéreo":["Aerial","The subject is in the air and only sky is visible around it. If the ground or the water below is visible, answer for that environment (a bird over a meadow is Terrestrial)."],"Subterráneo":["Underground","Cave, mine or inside the soil."],"No se puede determinar":["Cannot be determined",""]}}},"B14":{"id":"B14","tipo":"N","t":"¿Qué cubre el terreno que se ve?","opciones":[{"v":"Bosque","d":"dominan los árboles, con las copas juntas o casi."},{"v":"Matorral","d":"dominan los arbustos."},{"v":"Herbazal o pradera","d":"dominan las hierbas."},{"v":"Sabana","d":"hierba con árboles dispersos."},{"v":"Suelo desnudo o desierto","d":"tierra, arena o grava con poca vegetación."},{"v":"Roquedo","d":"domina la roca."},{"v":"Tundra o alta montaña","d":"vegetación muy baja por el frío, por encima del límite del bosque."},{"v":"Cultivo","d":"campos, huertos, plantaciones o praderas segadas."},{"v":"Zona edificada","d":"calles, edificios, jardines urbanos."},{"v":"No se puede determinar"}],"cuando":[{"p":"P5","no":["No"],"salto":"No se puede determinar"},{"p":"B13","en":["Terrestre"]}],"en":{"t":"What covers the visible ground?","o":{"Bosque":["Forest","Trees dominate, with their crowns touching or nearly so."],"Matorral":["Shrubland","Shrubs dominate."],"Herbazal o pradera":["Grassland or meadow","Grasses and herbs dominate."],"Sabana":["Savanna","Grass with scattered trees."],"Suelo desnudo o desierto":["Bare ground or desert","Soil, sand or gravel with little vegetation."],"Roquedo":["Rocky ground","Rock dominates."],"Tundra o alta montaña":["Tundra or high mountain","Very low vegetation because of the cold, above the tree line."],"Cultivo":["Cropland","Fields, orchards, plantations or mown meadows."],"Zona edificada":["Built-up area","Streets, buildings, urban gardens."],"No se puede determinar":["Cannot be determined",""]}}},"B15":{"id":"B15","tipo":"N","t":"¿Qué tipo de agua o de costa es?","opciones":[{"v":"Agua corriente","d":"río, arroyo o cascada."},{"v":"Agua quieta","d":"lago, laguna, charca o embalse."},{"v":"Humedal","d":"zona encharcada con vegetación que sale del agua (carrizal, turbera, marisma)."},{"v":"Mar abierto","d":"superficie o columna de agua sin fondo ni costa a la vista."},{"v":"Fondo marino o arrecife","d":"el fondo del mar, con o sin arrecife."},{"v":"Costa rocosa","d":"rocas o acantilados junto al mar."},{"v":"Playa o arenal","d":"arena o cantos junto al mar."},{"v":"No se puede determinar"}],"cuando":[{"p":"P5","no":["No"],"salto":"No se puede determinar"},{"p":"B13","en":["Agua dulce","Marino","Litoral"]}],"en":{"t":"What kind of water or coast is it?","o":{"Agua corriente":["Running water","River, stream or waterfall."],"Agua quieta":["Still water","Lake, lagoon, pond or reservoir."],"Humedal":["Wetland","Waterlogged area with vegetation emerging from the water (reed bed, peat bog, marsh)."],"Mar abierto":["Open sea","Surface or water column with no bottom or coast in sight."],"Fondo marino o arrecife":["Seabed or reef","The sea floor, with or without a reef."],"Costa rocosa":["Rocky coast","Rocks or cliffs by the sea."],"Playa o arenal":["Beach or sandy shore","Sand or pebbles by the sea."],"No se puede determinar":["Cannot be determined",""]}}},"B16":{"id":"B16","tipo":"O","t":"¿Cómo es el relieve del terreno que se ve?","opciones":[{"v":"Llano"},{"v":"Ondulado","d":"lomas o colinas suaves."},{"v":"Montañoso o escarpado","d":"pendientes fuertes, montañas, cortados."},{"v":"No se puede determinar","fuera":true}],"cuando":[{"p":"P5","no":["No"],"salto":"No se puede determinar"},{"p":"B13","en":["Terrestre","Agua dulce","Litoral"]}],"en":{"t":"What is the relief of the visible terrain like?","o":{"Llano":["Flat",""],"Ondulado":["Rolling","Gentle hills or slopes."],"Montañoso o escarpado":["Mountainous or steep","Steep slopes, mountains, cliffs."],"No se puede determinar":["Cannot be determined",""]}}},"B17":{"id":"B17","tipo":"O","t":"¿Cuánto ha transformado el ser humano el lugar que se ve?","a":"Responde solo a lo que se ve.","opciones":[{"v":"Ninguno visible","d":"no se ve ninguna huella humana."},{"v":"Bajo","d":"huellas puntuales (una senda, una valla, un poste) en un entorno natural."},{"v":"Medio","d":"el paisaje está organizado por el uso humano (cultivos, plantaciones, praderas segadas, repoblaciones)."},{"v":"Alto","d":"dominan las construcciones (edificios, carreteras, infraestructuras)."},{"v":"No se puede determinar","fuera":true}],"cuando":[{"p":"P5","no":["No"],"salto":"No se puede determinar"}],"en":{"t":"How much have humans transformed the visible place?","a":"Answer only for what can be seen.","o":{"Ninguno visible":["None visible","No human trace can be seen."],"Bajo":["Low","Isolated traces (a path, a fence, a post) in a natural setting."],"Medio":["Medium","The landscape is organised by human use (crops, plantations, mown meadows, reforestation)."],"Alto":["High","Constructions dominate (buildings, roads, infrastructure)."],"No se puede determinar":["Cannot be determined",""]}}},"B18":{"id":"B18","tipo":"M","t":"¿Qué elementos humanos aparecen en la foto?","max":3,"opciones":[{"v":"Ninguno","excl":true},{"v":"Personas"},{"v":"Edificios o estructuras","d":"casas, muros, puentes, vallas, postes."},{"v":"Vías o vehículos","d":"carreteras, caminos asfaltados, coches, barcos."},{"v":"Cultivos o ganado"},{"v":"Residuos o contaminación","d":"basura, vertidos, humo."},{"v":"Otros","d":"cualquier otro objeto hecho por personas."}],"en":{"t":"Which human elements appear in the photo?","o":{"Ninguno":["None",""],"Personas":["People",""],"Edificios o estructuras":["Buildings or structures","Houses, walls, bridges, fences, posts."],"Vías o vehículos":["Roads or vehicles","Roads, paved tracks, cars, boats."],"Cultivos o ganado":["Crops or livestock",""],"Residuos o contaminación":["Waste or pollution","Litter, spills, smoke."],"Otros":["Other","Any other object made by people."]}}},"B19":{"id":"B19","tipo":"O","t":"¿Cómo está el cielo?","opciones":[{"v":"Despejado","d":"sin nubes, o casi."},{"v":"Parcialmente nublado","d":"nubes y claros."},{"v":"Cubierto","d":"el cielo entero está cubierto de nubes o niebla alta."}],"cuando":[{"p":"P5","no":["No"],"salto":"No se puede determinar"},{"p":"P6","en":["Sí"],"salto":"No se puede determinar"}],"en":{"t":"What is the sky like?","o":{"Despejado":["Clear","No clouds, or almost none."],"Parcialmente nublado":["Partly cloudy","Clouds and clear patches."],"Cubierto":["Overcast","The whole sky is covered by clouds or high fog."]}}},"B20":{"id":"B20","tipo":"M","t":"¿Se ve algún fenómeno meteorológico?","max":2,"opciones":[{"v":"Ninguno","excl":true},{"v":"Niebla o bruma"},{"v":"Lluvia","d":"gotas cayendo o superficies mojadas por lluvia que cae."},{"v":"Nieve o granizo","d":"cayendo o en el suelo."},{"v":"Escarcha o hielo"},{"v":"Rocío o gotas","d":"gotas de agua sobre superficies, sin lluvia."},{"v":"Tormenta","d":"rayos o nubes de tormenta."},{"v":"Arcoíris"}],"en":{"t":"Is any weather phenomenon visible?","o":{"Ninguno":["None",""],"Niebla o bruma":["Fog or mist",""],"Lluvia":["Rain","Falling drops or surfaces wet from falling rain."],"Nieve o granizo":["Snow or hail","Falling or on the ground."],"Escarcha o hielo":["Frost or ice",""],"Rocío o gotas":["Dew or droplets","Water droplets on surfaces, without rain."],"Tormenta":["Storm","Lightning or storm clouds."],"Arcoíris":["Rainbow",""]}}},"B21":{"id":"B21","tipo":"N","t":"¿En qué momento del día se tomó la foto?","opciones":[{"v":"Día"},{"v":"Crepúsculo","d":"amanecer o atardecer, con el sol bajo o la luz anaranjada."},{"v":"Noche"},{"v":"No se puede determinar"}],"en":{"t":"At what time of day was the photo taken?","o":{"Día":["Day",""],"Crepúsculo":["Twilight","Sunrise or sunset, with the sun low or orange light."],"Noche":["Night",""],"No se puede determinar":["Cannot be determined",""]}}},"E1":{"id":"E1","tipo":"O","t":"¿Qué parte de la imagen ocupa el sujeto principal?","opciones":[{"v":"Menos del 5 %","d":"el sujeto es un punto en la imagen."},{"v":"5–25 %"},{"v":"25–50 %"},{"v":"50–80 %"},{"v":"Más del 80 %","d":"el sujeto llena el encuadre."}],"cuando":[{"p":"P7","en":["Sí"]}],"en":{"t":"How much of the image does the main subject take up?","o":{"Menos del 5 %":["Less than 5 %","The subject is a dot in the image."],"5–25 %":["5–25 %",""],"25–50 %":["25–50 %",""],"50–80 %":["50–80 %",""],"Más del 80 %":["More than 80 %","The subject fills the frame."]}}},"E2":{"id":"E2","tipo":"O","t":"¿Desde qué altura está tomada la foto respecto al sujeto?","a":"Si no hay sujeto, respecto al horizonte.","opciones":[{"v":"Cenital","d":"la cámara está justo encima y mira hacia abajo en vertical."},{"v":"Picado","d":"desde arriba, en diagonal."},{"v":"A nivel","d":"a la altura del sujeto."},{"v":"Contrapicado","d":"desde abajo, en diagonal."},{"v":"Nadir","d":"la cámara está justo debajo y mira hacia arriba en vertical."},{"v":"No se puede determinar","fuera":true}],"en":{"t":"From what height was the photo taken relative to the subject?","a":"If there is no subject, relative to the horizon.","o":{"Cenital":["Overhead (top-down)","The camera is directly above, looking straight down."],"Picado":["High angle","From above, at a diagonal."],"A nivel":["Eye level","At the subject's height."],"Contrapicado":["Low angle","From below, at a diagonal."],"Nadir":["Worm's-eye (straight up)","The camera is directly below, looking straight up."],"No se puede determinar":["Cannot be determined",""]}}},"E3":{"id":"E3","tipo":"N","t":"¿Qué lado del animal está de cara a la cámara?","opciones":[{"v":"Frontal","d":"mira a la cámara; se ven los dos ojos."},{"v":"Tres cuartos","d":"entre frontal y lateral."},{"v":"Lateral","d":"de perfil."},{"v":"Trasera","d":"de espaldas a la cámara."},{"v":"No se puede determinar"}],"cuando":[{"p":"E0","en":["Animalia"]},{"p":"P7","en":["Sí"]},{"p":"E2","no":["Cenital","Nadir"]}],"en":{"t":"Which side of the animal faces the camera?","o":{"Frontal":["Front","Looking at the camera; both eyes are visible."],"Tres cuartos":["Three-quarter","Between front and side."],"Lateral":["Side","In profile."],"Trasera":["Back","Facing away from the camera."],"No se puede determinar":["Cannot be determined",""]}}},"E4":{"id":"E4","tipo":"N","t":"Pulsa en la rejilla la celda donde está el centro del sujeto.","opciones":[{"v":"Arriba izquierda"},{"v":"Arriba centro"},{"v":"Arriba derecha"},{"v":"Centro izquierda"},{"v":"Centro"},{"v":"Centro derecha"},{"v":"Abajo izquierda"},{"v":"Abajo centro"},{"v":"Abajo derecha"}],"cuando":[{"p":"P7","en":["Sí"]},{"p":"E1","no":["Más del 80 %"]}],"rejilla":true,"en":{"t":"Tap the cell of the grid where the centre of the subject is.","o":{"Arriba izquierda":["Top left",""],"Arriba centro":["Top centre",""],"Arriba derecha":["Top right",""],"Centro izquierda":["Middle left",""],"Centro":["Centre",""],"Centro derecha":["Middle right",""],"Abajo izquierda":["Bottom left",""],"Abajo centro":["Bottom centre",""],"Abajo derecha":["Bottom right",""]}}},"E5":{"id":"E5","tipo":"M","t":"¿Qué recursos de composición destacan?","max":2,"a":"","opciones":[{"v":"Líneas guía","d":"líneas (un camino, una rama, la orilla) que llevan la mirada hacia el sujeto o hacia el fondo."},{"v":"Simetría","d":"las dos mitades de la imagen son casi iguales, en espejo."},{"v":"Repetición o patrón","d":"un elemento se repite muchas veces (hojas, escamas, troncos)."},{"v":"Enmarque","d":"un elemento de la escena (ramas, una cueva, una ventana) rodea al sujeto como un marco."},{"v":"Capas de profundidad","d":"se distinguen primer plano, plano medio y fondo."},{"v":"Espacio negativo","d":"una gran zona vacía o uniforme rodea al sujeto."},{"v":"Ninguno destacado","excl":true}],"en":{"t":"Which composition devices stand out?","o":{"Líneas guía":["Leading lines","Lines (a path, a branch, the shore) that lead the eye towards the subject or into the background."],"Simetría":["Symmetry","The two halves of the image are almost identical, mirrored."],"Repetición o patrón":["Repetition or pattern","An element is repeated many times (leaves, scales, trunks)."],"Enmarque":["Framing","An element of the scene (branches, a cave, a window) surrounds the subject like a frame."],"Capas de profundidad":["Layers of depth","Foreground, middle ground and background can be told apart."],"Espacio negativo":["Negative space","A large empty or uniform area surrounds the subject."],"Ninguno destacado":["None stands out",""]}}},"E6":{"id":"E6","tipo":"N","t":"¿Qué dirección tienen las líneas que dominan la imagen?","a":"","opciones":[{"v":"Horizontales","d":"horizonte, orillas, estratos."},{"v":"Verticales","d":"troncos, tallos, cascadas."},{"v":"Diagonales"},{"v":"Curvas","d":"ríos sinuosos, cuellos, pétalos."},{"v":"Radiales o convergentes","d":"salen de un punto o se juntan en él."},{"v":"Sin líneas dominantes"}],"en":{"t":"What direction do the dominant lines of the image have?","o":{"Horizontales":["Horizontal","Horizon, shores, strata."],"Verticales":["Vertical","Trunks, stems, waterfalls."],"Diagonales":["Diagonal",""],"Curvas":["Curved","Winding rivers, necks, petals."],"Radiales o convergentes":["Radial or converging","They come out of a point or meet at one."],"Sin líneas dominantes":["No dominant lines",""]}}},"E7":{"id":"E7","tipo":"O","t":"¿Qué parte de la escena, de delante a atrás, está nítida?","a":"","opciones":[{"v":"Muy reducida","d":"solo una franja estrecha está nítida; el fondo es irreconocible."},{"v":"Reducida","d":"el fondo está desenfocado, pero se reconoce."},{"v":"Amplia","d":"casi todo está nítido, de delante a atrás."}],"en":{"t":"How much of the scene, from front to back, is sharp?","o":{"Muy reducida":["Very shallow","Only a narrow strip is sharp; the background is unrecognisable."],"Reducida":["Shallow","The background is blurred but recognisable."],"Amplia":["Deep","Almost everything is sharp, from front to back."]}}},"E8":{"id":"E8","tipo":"O","t":"¿Está nítido el sujeto principal?","opciones":[{"v":"Desenfocado","d":"no se distinguen los detalles del sujeto."},{"v":"Aceptable","d":"un ligero desenfoque o movimiento, pero se ven los detalles."},{"v":"Nítido","d":"los detalles finos se ven con claridad."}],"cuando":[{"p":"P7","en":["Sí"]}],"en":{"t":"Is the main subject sharp?","o":{"Desenfocado":["Out of focus","The subject's details cannot be made out."],"Aceptable":["Acceptable","Slight blur or movement, but the details are visible."],"Nítido":["Sharp","Fine details are clearly visible."]}}},"E9":{"id":"E9","tipo":"N","t":"¿La luz de la foto deja ver los detalles del sujeto, o de la zona principal si no hay sujeto?","a":"Una silueta a contraluz es un recurso, no un fallo: en ese caso valora la exposición del fondo.","opciones":[{"v":"Subexpuesta","d":"las zonas importantes están tan oscuras que se pierden detalles."},{"v":"Correcta","d":"se ven los detalles en las zonas importantes."},{"v":"Sobreexpuesta","d":"las zonas importantes están tan claras que se pierden detalles (blancos quemados)."}],"en":{"t":"Does the light in the photo show the details of the subject, or of the main area if there is no subject?","a":"A backlit silhouette is a device, not a mistake: in that case judge the exposure of the background.","o":{"Subexpuesta":["Underexposed","The important areas are so dark that detail is lost."],"Correcta":["Correct","Detail is visible in the important areas."],"Sobreexpuesta":["Overexposed","The important areas are so bright that detail is lost (blown highlights)."]}}},"E10":{"id":"E10","tipo":"O","t":"¿Cómo son las sombras?","a":"","opciones":[{"v":"Dura","d":"sombras con el borde nítido y mucho contraste, como con sol directo."},{"v":"Intermedia"},{"v":"Difusa","d":"sombras suaves o ausentes, como con cielo cubierto o a la sombra."},{"v":"No se puede determinar","d":"no hay sombras que mirar (cielo nocturno, microscopio, imagen abstracta).","fuera":true}],"en":{"t":"What are the shadows like?","o":{"Dura":["Hard","Sharp-edged shadows and high contrast, as in direct sun."],"Intermedia":["Intermediate",""],"Difusa":["Soft","Soft or no shadows, as under an overcast sky or in the shade."],"No se puede determinar":["Cannot be determined","There are no shadows to look at (night sky, microscope, abstract image)."]}}},"E11":{"id":"E11","tipo":"N","t":"¿De dónde llega la luz principal?","a":"","opciones":[{"v":"Frontal","d":"desde detrás de la cámara; el sujeto casi no tiene sombras."},{"v":"Lateral","d":"desde un lado; las sombras se alargan y resaltan la textura. Incluye la luz rasante."},{"v":"Contraluz","d":"desde detrás del sujeto; los bordes brillan o el sujeto queda en silueta."},{"v":"Cenital","d":"desde arriba, como el sol a mediodía."},{"v":"Desde abajo"},{"v":"Sin dirección clara","d":"la luz llega por igual desde todas partes."}],"en":{"t":"Where does the main light come from?","o":{"Frontal":["Front","From behind the camera; the subject has almost no shadows."],"Lateral":["Side","From one side; shadows lengthen and bring out texture. Includes raking light."],"Contraluz":["Backlight","From behind the subject; the edges glow or the subject is in silhouette."],"Cenital":["Overhead","From above, like the midday sun."],"Desde abajo":["From below",""],"Sin dirección clara":["No clear direction","The light arrives equally from everywhere."]}}},"E12":{"id":"E12","tipo":"N","t":"¿De dónde viene la luz?","a":"","opciones":[{"v":"Natural","d":"sol, cielo o luna."},{"v":"Artificial","d":"flash, lámpara, alumbrado."},{"v":"Mezcla","d":"se ven a la vez luz natural y artificial."},{"v":"Bioluminiscencia","d":"la luz la emite el propio organismo."},{"v":"No se puede determinar"}],"en":{"t":"What is the light source?","o":{"Natural":["Natural","Sun, sky or moon."],"Artificial":["Artificial","Flash, lamp, street lighting."],"Mezcla":["Mixed","Natural and artificial light are visible at the same time."],"Bioluminiscencia":["Bioluminescence","The light is emitted by the organism itself."],"No se puede determinar":["Cannot be determined",""]}}},"E13":{"id":"E13","tipo":"O","t":"¿Cómo de intensos son los colores?","opciones":[{"v":"Nula","d":"blanco y negro, sin color."},{"v":"Baja","d":"colores apagados o grisáceos."},{"v":"Media"},{"v":"Alta","d":"colores intensos y vivos."}],"en":{"t":"How intense are the colours?","o":{"Nula":["None","Black and white, no colour."],"Baja":["Low","Muted or greyish colours."],"Media":["Medium",""],"Alta":["High","Intense, vivid colours."]}}},"E14":{"id":"E14","tipo":"N","t":"¿Qué color ocupa más superficie en la imagen?","opciones":[{"v":"Rojo"},{"v":"Naranja"},{"v":"Amarillo"},{"v":"Verde"},{"v":"Azul"},{"v":"Morado"},{"v":"Rosa"},{"v":"Marrón"},{"v":"Blanco"},{"v":"Gris"},{"v":"Negro"},{"v":"Sin predominancia","d":"Ningún color ocupa más de un tercio de la imagen."}],"cuando":[{"p":"E13","no":["Nula"]}],"en":{"t":"Which colour covers the largest area of the image?","o":{"Rojo":["Red",""],"Naranja":["Orange",""],"Amarillo":["Yellow",""],"Verde":["Green",""],"Azul":["Blue",""],"Morado":["Purple",""],"Rosa":["Pink",""],"Marrón":["Brown",""],"Blanco":["White",""],"Gris":["Grey",""],"Negro":["Black",""],"Sin predominancia":["No dominant colour","No colour covers more than a third of the image."]}}},"E15":{"id":"E15","tipo":"N","t":"¿Qué color es el segundo en superficie?","cuando":[{"p":"E13","no":["Nula"]},{"p":"E14","no":["Sin predominancia"]}],"opciones":[{"v":"Rojo"},{"v":"Naranja"},{"v":"Amarillo"},{"v":"Verde"},{"v":"Azul"},{"v":"Morado"},{"v":"Rosa"},{"v":"Marrón"},{"v":"Blanco"},{"v":"Gris"},{"v":"Negro"},{"v":"Ninguno","d":"La imagen es casi de un solo color."}],"en":{"t":"Which colour is second by area?","o":{"Rojo":["Red",""],"Naranja":["Orange",""],"Amarillo":["Yellow",""],"Verde":["Green",""],"Azul":["Blue",""],"Morado":["Purple",""],"Rosa":["Pink",""],"Marrón":["Brown",""],"Blanco":["White",""],"Gris":["Grey",""],"Negro":["Black",""],"Ninguno":["None","The image is almost a single colour."]}}},"E16":{"id":"E16","tipo":"O","t":"¿La luz y el tono general de la imagen tiran a frío o a cálido?","a":"Responde por la luz, no por el color de los objetos: un pájaro rojo bajo luz neutra es «Neutra».","opciones":[{"v":"Fría","d":"la imagen tira a azul o cian."},{"v":"Neutra","d":"ni fría ni cálida."},{"v":"Cálida","d":"la imagen tira a naranja, amarillo o rojo."}],"cuando":[{"p":"E13","no":["Nula"]}],"en":{"t":"Do the light and overall tone of the image lean cold or warm?","a":"Answer for the light, not for the colour of the objects: a red bird under neutral light is «Neutral».","o":{"Fría":["Cold","The image leans towards blue or cyan."],"Neutra":["Neutral","Neither cold nor warm."],"Cálida":["Warm","The image leans towards orange, yellow or red."]}}},"E17":{"id":"E17","tipo":"O","t":"¿Cómo de clara u oscura es la imagen en conjunto?","a":"","opciones":[{"v":"Muy oscura","d":"casi toda la imagen está en sombra."},{"v":"Oscura"},{"v":"Media"},{"v":"Clara"},{"v":"Muy clara","d":"casi toda la imagen está en tonos claros."}],"en":{"t":"How light or dark is the image overall?","o":{"Muy oscura":["Very dark","Almost the whole image is in shadow."],"Oscura":["Dark",""],"Media":["Medium",""],"Clara":["Light",""],"Muy clara":["Very light","Almost the whole image is in light tones."]}}},"E18":{"id":"E18","tipo":"O","t":"¿Cuánta diferencia hay entre las zonas más claras y las más oscuras?","a":"","opciones":[{"v":"Bajo","d":"no hay negros profundos ni blancos brillantes; los tonos se parecen y la imagen se ve plana."},{"v":"Medio"},{"v":"Alto","d":"negros profundos y blancos brillantes en la misma imagen."}],"en":{"t":"How much difference is there between the lightest and darkest areas?","o":{"Bajo":["Low","No deep blacks or bright whites; the tones are similar and the image looks flat."],"Medio":["Medium",""],"Alto":["High","Deep blacks and bright whites in the same image."]}}},"E19":{"id":"E19","tipo":"N","t":"¿Qué textura tiene la superficie del sujeto principal?","opciones":[{"v":"Lisa","d":"superficie uniforme, sin relieve."},{"v":"Rugosa","d":"superficie irregular, con relieve (corteza, roca)."},{"v":"Granulada o porosa","d":"granos o poros pequeños (arena, piel de anfibio, esponja)."},{"v":"Estriada o fibrosa","d":"surcos o fibras paralelas (madera, músculo, hojas de gramínea)."},{"v":"Agrietada","d":"grietas o fisuras (barro seco, corteza vieja)."},{"v":"Escamosa","d":"escamas o placas superpuestas."},{"v":"Pilosa o plumosa","d":"pelo, plumas o vello."},{"v":"Espinosa","d":"espinas o púas."},{"v":"No se puede determinar"}],"cuando":[{"p":"P7","en":["Sí"]}],"en":{"t":"What texture does the surface of the main subject have?","o":{"Lisa":["Smooth","Even surface, no relief."],"Rugosa":["Rough","Irregular surface with relief (bark, rock)."],"Granulada o porosa":["Grainy or porous","Small grains or pores (sand, amphibian skin, sponge)."],"Estriada o fibrosa":["Striated or fibrous","Parallel grooves or fibres (wood, muscle, grass blades)."],"Agrietada":["Cracked","Cracks or fissures (dry mud, old bark)."],"Escamosa":["Scaly","Overlapping scales or plates."],"Pilosa o plumosa":["Hairy or feathery","Hair, feathers or down."],"Espinosa":["Spiny","Spines or prickles."],"No se puede determinar":["Cannot be determined",""]}}},"E20":{"id":"E20","tipo":"N","t":"¿Cómo refleja la luz la superficie del sujeto?","opciones":[{"v":"Mate","d":"no hay brillos."},{"v":"Brillante o húmeda","d":"con brillos o reflejos (superficie mojada, hoja encerada, ojo)."},{"v":"Iridiscente o metálica","d":"el color cambia con el ángulo o tiene reflejo metálico (escarabajos, plumas de colibrí)."},{"v":"Translúcida","d":"deja pasar la luz (alas de libélula, medusas, pétalos finos)."},{"v":"No se puede determinar"}],"cuando":[{"p":"P7","en":["Sí"]}],"en":{"t":"How does the subject's surface reflect light?","o":{"Mate":["Matte","No highlights."],"Brillante o húmeda":["Glossy or wet","With highlights or reflections (wet surface, waxy leaf, eye)."],"Iridiscente o metálica":["Iridescent or metallic","The colour changes with the angle or has a metallic sheen (beetles, hummingbird feathers)."],"Translúcida":["Translucent","Lets light through (dragonfly wings, jellyfish, thin petals)."],"No se puede determinar":["Cannot be determined",""]}}},"E21":{"id":"E21","tipo":"N","t":"¿Con qué medio se tomó la foto?","a":"","opciones":[{"v":"Convencional","d":"cámara en mano o en trípode, a la altura de una persona o cerca del suelo."},{"v":"Aérea","d":"desde un dron, un avión o una altura muy elevada."},{"v":"Fototrampeo","d":"cámara automática que se dispara con el movimiento (suele llevar fecha impresa o verse en infrarrojo de noche)."},{"v":"Subacuática","d":"bajo el agua."},{"v":"Microscopio"},{"v":"No se puede determinar"}],"en":{"t":"With what was the photo taken?","o":{"Convencional":["Conventional","Handheld or tripod camera, at a person's height or near the ground."],"Aérea":["Aerial","From a drone, a plane or a very high point."],"Fototrampeo":["Camera trap","Automatic camera triggered by movement (often has a printed date or infrared at night)."],"Subacuática":["Underwater",""],"Microscopio":["Microscope",""],"No se puede determinar":["Cannot be determined",""]}}},"E22":{"id":"E22","tipo":"M","t":"¿Qué técnicas fotográficas se reconocen?","max":2,"a":"","opciones":[{"v":"Estándar","d":"ninguna técnica especial reconocible.","excl":true},{"v":"Macro","d":"un sujeto pequeño fotografiado muy de cerca, a gran tamaño en la imagen."},{"v":"Larga exposición","d":"agua sedosa, nubes estiradas, estelas de luz o de estrellas."},{"v":"Congelación del movimiento","d":"algo rápido queda detenido y nítido (gotas en el aire, alas)."},{"v":"Barrido","d":"el sujeto está nítido y el fondo tiene estelas, por seguirlo con la cámara."},{"v":"Exposición múltiple","d":"dos o más imágenes superpuestas."},{"v":"Movimiento intencionado de cámara (ICM)","d":"toda la imagen está movida a propósito, con aspecto pictórico."},{"v":"Apilamiento de enfoque","d":"una macro con todo nítido de delante a atrás, algo que no cabe en una sola toma."},{"v":"Panorámica cosida","d":"formato muy alargado, unido a partir de varias fotos."},{"v":"Espectro no visible","d":"infrarrojo o ultravioleta (vegetación blanca o rosa, colores irreales)."}],"en":{"t":"Which photographic techniques can be recognised?","o":{"Estándar":["Standard","No special technique can be recognised."],"Macro":["Macro","A small subject photographed very close, large in the image."],"Larga exposición":["Long exposure","Silky water, stretched clouds, light or star trails."],"Congelación del movimiento":["Frozen motion","Something fast is stopped and sharp (drops in the air, wings)."],"Barrido":["Panning","The subject is sharp and the background streaked, from following it with the camera."],"Exposición múltiple":["Multiple exposure","Two or more images overlaid."],"Movimiento intencionado de cámara (ICM)":["Intentional camera movement (ICM)","The whole image is deliberately blurred, with a painterly look."],"Apilamiento de enfoque":["Focus stacking","A macro sharp from front to back, which cannot be achieved in a single shot."],"Panorámica cosida":["Stitched panorama","Very elongated format, joined from several photos."],"Espectro no visible":["Non-visible spectrum","Infrared or ultraviolet (white or pink vegetation, unreal colours)."]}}},"E23":{"id":"E23","tipo":"N","t":"¿Qué busca la foto, sobre todo?","a":"","opciones":[{"v":"Documental","d":"registrar el sujeto con fidelidad, como prueba o información."},{"v":"Estético","d":"la belleza de la forma, la luz o el color, sin alterar la realidad."},{"v":"Creativo","d":"una interpretación propia, que se aleja de la realidad (abstracción, minimalismo extremo, movimiento intencionado, colores irreales)."}],"interpretativa":true,"en":{"t":"What is the photo mainly after?","o":{"Documental":["Documentary","To record the subject faithfully, as evidence or information."],"Estético":["Aesthetic","The beauty of shape, light or colour, without altering reality."],"Creativo":["Creative","A personal interpretation that moves away from reality (abstraction, extreme minimalism, intentional movement, unreal colours)."]}}},"E24":{"id":"E24","tipo":"O","t":"¿Cuánto movimiento transmite la imagen, aunque esté quieta?","a":"","opciones":[{"v":"Ninguna","d":"la escena se percibe quieta."},{"v":"Leve"},{"v":"Moderada"},{"v":"Alta","d":"la escena se percibe en plena acción."}],"interpretativa":true,"en":{"t":"How much movement does the image convey, even though it is still?","o":{"Ninguna":["None","The scene feels still."],"Leve":["Slight",""],"Moderada":["Moderate",""],"Alta":["High","The scene feels in full action."]}}},"E25":{"id":"E25","tipo":"M","t":"¿Qué te cuenta la foto?","max":2,"a":"","opciones":[{"v":"Belleza o contemplación","d":"invita a mirar por su belleza, sin más historia."},{"v":"Curiosidad","d":"muestra algo raro, poco conocido o sorprendente."},{"v":"Vínculo","d":"relación afectiva o de cercanía entre seres."},{"v":"Crianza","d":"cuidado de las crías."},{"v":"Ciclo de vida","d":"nacimiento, crecimiento, transformación o muerte."},{"v":"Adaptación","d":"un rasgo o una conducta que encaja con el medio (camuflaje, mimetismo)."},{"v":"Supervivencia","d":"lucha por seguir vivo (frío, sequía, huida)."},{"v":"Cadena trófica","d":"quién se alimenta de quién."},{"v":"Soledad","d":"un individuo aislado en un espacio amplio."},{"v":"Vulnerabilidad","d":"fragilidad del sujeto o de la naturaleza."},{"v":"Decadencia","d":"deterioro, abandono o descomposición."},{"v":"Conciencia ambiental","d":"un problema causado por las personas (residuos, destrucción del hábitat)."},{"v":"Relación humano-naturaleza","d":"convivencia o contacto entre personas y naturaleza."}],"interpretativa":true,"en":{"t":"What does the photo tell you?","o":{"Belleza o contemplación":["Beauty or contemplation","It invites you to look for its beauty, with no further story."],"Curiosidad":["Curiosity","It shows something rare, little known or surprising."],"Vínculo":["Bond","An affectionate or close relationship between beings."],"Crianza":["Parenting","Caring for young."],"Ciclo de vida":["Life cycle","Birth, growth, transformation or death."],"Adaptación":["Adaptation","A trait or behaviour that fits the environment (camouflage, mimicry)."],"Supervivencia":["Survival","Struggle to stay alive (cold, drought, escape)."],"Cadena trófica":["Food chain","Who feeds on whom."],"Soledad":["Solitude","An isolated individual in a wide space."],"Vulnerabilidad":["Vulnerability","Fragility of the subject or of nature."],"Decadencia":["Decay","Deterioration, abandonment or decomposition."],"Conciencia ambiental":["Environmental awareness","A problem caused by people (waste, habitat destruction)."],"Relación humano-naturaleza":["Human–nature relationship","Coexistence or contact between people and nature."]}}},"E26":{"id":"E26","tipo":"O","t":"¿Cuánto te gusta esta foto como imagen?","a":"Escala de 1 a 7: 1, nada; 4, ni me gusta ni me disgusta; 7, muchísimo.","opciones":[{"v":"1"},{"v":"2"},{"v":"3"},{"v":"4"},{"v":"5"},{"v":"6"},{"v":"7"}],"interpretativa":true,"en":{"t":"How much do you like this photo as an image?","a":"Scale from 1 to 7: 1, not at all; 4, neither like nor dislike; 7, very much.","o":{"1":["1",""],"2":["2",""],"3":["3",""],"4":["4",""],"5":["5",""],"6":["6",""],"7":["7",""]}}},"E0":{"id":"E0","tipo":"N","t":"¿Qué es el sujeto principal de la foto?","a":"Reglas para los casos dudosos: Si se reconoce el organismo, gana el organismo, aunque la foto sea muy abstracta (corteza de cerca → Plantae; bosque con movimiento intencionado de cámara → Paisaje, no Abstracto). Un animal sobre una planta o un hongo: el sujeto es el que está enfocado y ocupa más la atención. Si están igual, el animal. Cielo nocturno sobre un paisaje: Cosmos si las estrellas o la Luna ocupan la mayor parte y son el tema; Paisaje si el cielo acompaña. Agua en movimiento (cascadas, ríos, olas en la costa): Paisaje. Fenómeno natural se reserva para fenómenos atmosféricos o geológicos en curso. Animales domésticos y plantas cultivadas van en su reino.","opciones":[{"v":"Animalia","d":"un animal, de cualquier grupo (mamíferos, aves, insectos, arañas, moluscos, corales…)."},{"v":"Plantae","d":"una planta. Por convención, las algas grandes (macroalgas) también van aquí."},{"v":"Fungi","d":"una seta u otro hongo. Los líquenes también van aquí."},{"v":"Microorganismo","d":"organismos que solo se ven al microscopio o como una masa sin individuos distinguibles (tapetes bacterianos, mixomicetos, colonias)."},{"v":"Paisaje","d":"no hay un organismo u objeto destacado; el tema es el lugar en conjunto."},{"v":"Elemento humano","d":"el sujeto principal es una persona, una construcción o un objeto hecho por personas."},{"v":"Fenómeno natural","d":"el tema es un fenómeno físico de la Tierra (rayo, arcoíris, niebla, ola, erupción, aurora)."},{"v":"Cosmos","d":"el tema son los astros o el cielo nocturno (Luna, estrellas, Vía Láctea)."},{"v":"Elemento geológico","d":"el tema son rocas, minerales o formaciones geológicas vistas de cerca. Una montaña o un roquedo vistos de lejos son Paisaje. Un fósil va en el reino del organismo, con P2 = Rastro o indicio."},{"v":"Abstracto","d":"no se reconoce el tema; la imagen se lee como formas, colores o texturas."},{"v":"No se puede determinar"}],"en":{"t":"What is the main subject of the photo?","a":"Rules for doubtful cases: If the organism can be recognised, the organism wins, even if the photo is very abstract (bark close up → Plantae; forest with intentional camera movement → Landscape, not Abstract). An animal on a plant or a fungus: the subject is the one in focus that draws most attention. If they are equal, the animal. Night sky over a landscape: Cosmos if the stars or the Moon take up most of the image and are the theme; Landscape if the sky goes along with it. Moving water (waterfalls, rivers, waves on the coast): Landscape. Natural phenomenon is reserved for atmospheric or geological phenomena in progress. Domestic animals and cultivated plants go in their kingdom.","o":{"Animalia":["Animalia","An animal of any group (mammals, birds, insects, spiders, molluscs, corals…)."],"Plantae":["Plantae","A plant. By convention, large algae (macroalgae) also go here."],"Fungi":["Fungi","A mushroom or another fungus. Lichens also go here."],"Microorganismo":["Microorganism","Organisms only visible under the microscope or as a mass without distinguishable individuals (bacterial mats, slime moulds, colonies)."],"Paisaje":["Landscape","There is no prominent organism or object; the theme is the place as a whole."],"Elemento humano":["Human element","The main subject is a person, a building or an object made by people."],"Fenómeno natural":["Natural phenomenon","The theme is a physical phenomenon of the Earth (lightning, rainbow, fog, wave, eruption, aurora)."],"Cosmos":["Cosmos","The theme is the celestial bodies or the night sky (Moon, stars, Milky Way)."],"Elemento geológico":["Geological element","The theme is rocks, minerals or geological formations seen close up. A mountain or a rocky area seen from afar is Landscape. A fossil goes in the organism's kingdom, as a trace."],"Abstracto":["Abstract","The theme cannot be recognised; the image reads as shapes, colours or textures."],"No se puede determinar":["Cannot be determined",""]}}}}};
+
+// Motor de puertas compartido: lo usa el servidor para validar y el navegador para mostrar u ocultar.
+// El navegador recibe este mismo código con fuenteCompartida(), así que no hay dos versiones.
+
+/** Opciones de una pregunta, resolviendo las que dependen del reino. */
+function opcionesDe(q, final) {
+  if (!q.opcionesSegun) return q.opciones || [];
+  const clave = final[q.opcionesSegun] && final[q.opcionesSegun].valor;
+  return q.opciones[clave] || [];
+}
+
+/**
+ * Recorre el módulo en orden y decide, para cada pregunta, si se muestra o qué valor pone la puerta.
+ * Devuelve {final: {id: {valor, origen}}}, con origen 'respuesta', 'puerta' o 'pendiente'
+ * (pendiente = depende de una puerta que aún no tiene respuesta).
+ */
+function resolverPuertas(modulo, resp) {
+  const final = {};
+  VOCAB.modulos[modulo].forEach(function (id) {
+    const q = VOCAB.preguntas[id];
+    let salto = null, pendiente = false;
+    (q.cuando || []).some(function (c) {
+      const v = final[c.p].valor;
+      if (v === undefined) { pendiente = true; return true; }
+      const ok = c.en ? c.en.indexOf(v) >= 0 : c.no.indexOf(v) < 0;
+      if (ok) return false;
+      salto = c.salto === undefined ? VOCAB.noAplica
+        : typeof c.salto === 'string' ? c.salto : (c.salto[v] || VOCAB.noAplica);
+      return true;
+    });
+    if (pendiente) final[id] = { valor: undefined, origen: 'pendiente' };
+    else if (salto !== null) final[id] = { valor: salto, origen: 'puerta' };
+    else final[id] = { valor: resp[id], origen: 'respuesta' };
+  });
+  return { final: final };
+}
+
+/** Comprueba una respuesta suelta. Devuelve un texto de error o ''. */
+function errorDe(q, v, final) {
+  if (v === undefined || v === null || v === '') return 'sin responder';
+  if (q.tipo === 'texto') {
+    return typeof v === 'string' && v.trim().length > 0 && v.length <= 200 ? '' : 'texto vacío o demasiado largo';
+  }
+  const validas = opcionesDe(q, final).map(function (o) { return o.v; });
+  if (q.tipo === 'M') {
+    if (!Array.isArray(v) || v.length === 0) return 'sin responder';
+    if (v.length > q.max) return 'más de ' + q.max + ' opciones';
+    if (v.some(function (x) { return validas.indexOf(x) < 0; })) return 'opción no válida';
+    const excl = opcionesDe(q, final).filter(function (o) { return o.excl; }).map(function (o) { return o.v; });
+    if (v.length > 1 && v.some(function (x) { return excl.indexOf(x) >= 0; })) return 'opción excluyente combinada';
+    return '';
+  }
+  return validas.indexOf(v) >= 0 ? '' : 'opción no válida';
+}
+
+/** Valida un envío completo. Devuelve {errores: [..], final}. Las respuestas a preguntas ocultas se ignoran. */
+function validarEnvio(modulo, resp) {
+  if (!VOCAB.modulos[modulo]) return { errores: ['módulo desconocido'], final: {} };
+  const r = resolverPuertas(modulo, resp), errores = [];
+  VOCAB.modulos[modulo].forEach(function (id) {
+    const f = r.final[id];
+    if (f.origen === 'pendiente') errores.push(id + ': pendiente');
+    else if (f.origen === 'respuesta') {
+      const e = errorDe(VOCAB.preguntas[id], f.valor, r.final);
+      if (e) errores.push(id + ': ' + e);
+    }
+  });
+  return { errores: errores, final: r.final };
+}
+
+const MODO = new URLSearchParams(location.search).get('modo') === 'prueba' ? 'prueba' : 'real';
+const CONTACTO = "(correo pendiente)";
+const API = "https://script.google.com/macros/s/AKfycbyfqqWqxoiVbA9V_eNK7MJkGeW3qKkrklwXHiiaJkHo2-uVXv9i456PJRqrKAyRfM-6/exec"; // la versión estática (generar_web.py) pone aquí la URL /exec del servidor
+
+const T = {
+  es: {
+    prueba: 'Modo prueba: estas respuestas no cuentan',
+    titulo: 'Encuesta de fotografía de naturaleza',
+    consTit: 'Antes de empezar',
+    cons: ['Este estudio compara cómo describen las fotografías de naturaleza las personas y los modelos de inteligencia artificial.',
+      'Tus respuestas se publicarán una a una como datos abiertos, junto a tu perfil (formación, nivel y experiencia) y un código anónimo. Tu nombre no se guarda: solo sirve para reconocerte cuando vuelvas, y se convierte en ese código.',
+      'Puedes dejarlo cuando quieras; lo que hayas enviado se conserva. Para cualquier duda, o para pedir que se retiren tus respuestas, escribe a '],
+    acepto: 'Acepto y quiero participar',
+    hola: 'Hola, ', seguirComo: 'Seguir', noSoy: 'No soy ',
+    quienTit: 'Quién eres', nombre: 'Nombre y apellidos',
+    nombreNota: 'Con tu nombre y tu formación te reconocemos si vuelves, también desde otro dispositivo. El nombre no se guarda.',
+    elegir: 'Elige…', entrar: 'Entrar', faltaNombre: 'Escribe tu nombre y apellidos.', faltaPerfil: 'Responde las cuatro preguntas del perfil.',
+    modTit: '¿Qué quieres evaluar?', bio: 'Biología y ecología', bioD: 'Qué organismo es, qué hace y dónde está.',
+    est: 'Estética y fotografía', estD: 'Composición, luz, color y técnica.',
+    foto: 'Foto', de: 'de', ampliar: 'Ver la foto en grande', guardar: 'Guardar y seguir', guardarFin: 'Guardar y terminar el lote', guardando: 'Guardando…',
+    faltan: 'Falta alguna pregunta por responder.', comentario: '¿Algo que no encajaba en las opciones? (opcional)',
+    noSe: 'No lo sé', hasta: 'hasta', opciones: 'opciones', interp: 'Tu opinión: aquí no hay respuestas correctas',
+    ayuda: 'Ayuda',
+    finLote: 'Lote terminado. Gracias.', otroLote: 'Otro lote', cambiar: 'Cambiar de módulo', salir: 'Salir',
+    adios: 'Gracias por participar. Ya puedes cerrar esta pestaña.', sinFotos: 'Has evaluado todas las fotos de este módulo. Gracias.',
+    cargando: 'Cargando…', errorRed: 'No hay conexión con el servidor. Comprueba tu conexión y vuelve a intentarlo.',
+    nada: 'nada', muchisimo: 'muchísimo',
+  },
+  en: {
+    prueba: 'Test mode: these answers do not count',
+    titulo: 'Nature photography survey',
+    consTit: 'Before you start',
+    cons: ['This study compares how people and artificial intelligence models describe nature photographs.',
+      'Your answers will be published one by one as open data, together with your profile (background, level and experience) and an anonymous code. Your name is not stored: it is only used to recognise you when you come back, and it is turned into that code.',
+      'You can stop whenever you want; whatever you have sent is kept. For any question, or to ask for your answers to be removed, write to '],
+    acepto: 'I agree and want to take part',
+    hola: 'Hello, ', seguirComo: 'Continue', noSoy: 'I am not ',
+    quienTit: 'Who you are', nombre: 'First name and surname',
+    nombreNota: 'Your name and field of study let us recognise you when you come back, also from another device. Your name is not stored.',
+    elegir: 'Choose…', entrar: 'Enter', faltaNombre: 'Type your first name and surname.', faltaPerfil: 'Answer the four profile questions.',
+    modTit: 'What do you want to evaluate?', bio: 'Biology and ecology', bioD: 'Which organism it is, what it does and where it is.',
+    est: 'Aesthetics and photography', estD: 'Composition, light, colour and technique.',
+    foto: 'Photo', de: 'of', ampliar: 'View the photo larger', guardar: 'Save and continue', guardarFin: 'Save and finish the batch', guardando: 'Saving…',
+    faltan: 'Some questions are still unanswered.', comentario: 'Anything that did not fit the options? (optional)',
+    noSe: "I don't know", hasta: 'up to', opciones: 'options', interp: 'Your opinion: there are no right answers here',
+    ayuda: 'Help',
+    finLote: 'Batch finished. Thank you.', otroLote: 'Another batch', cambiar: 'Change module', salir: 'Exit',
+    adios: 'Thank you for taking part. You can close this tab now.', sinFotos: 'You have evaluated every photo in this module. Thank you.',
+    cargando: 'Loading…', errorRed: 'The server cannot be reached. Check your connection and try again.',
+    nada: 'not at all', muchisimo: 'very much',
+  },
+};
+const S = { idioma: 'es', codigo: null, nombre: '', modulo: null, lote: [], i: 0, resp: {}, ayudas: {}, t0: 0 };
+const app = document.getElementById('app');
+const t = function (k) { return T[S.idioma][k]; };
+const CLAVE = 'encuesta_v2_persona_' + MODO; // el nombre solo se queda en este navegador
+function recordar(p) { try { localStorage.setItem(CLAVE, JSON.stringify(p)); } catch (e) {} }
+function recordado() { try { return JSON.parse(localStorage.getItem(CLAVE)); } catch (e) { return null; } }
+function olvidar() { try { localStorage.removeItem(CLAVE); } catch (e) {} }
+
+function el(tag, props, hijos) {
+  const n = document.createElement(tag);
+  Object.keys(props || {}).forEach(function (k) {
+    if (k === 'on') Object.keys(props.on).forEach(function (ev) { n.addEventListener(ev, props.on[ev]); });
+    else if (k === 'text') n.textContent = props[k];
+    else n.setAttribute(k, props[k]);
+  });
+  (hijos || []).forEach(function (h) { if (h) n.appendChild(typeof h === 'string' ? document.createTextNode(h) : h); });
+  return n;
+}
+function pantalla(hijos) {
+  app.innerHTML = '';
+  document.documentElement.lang = S.idioma;
+  if (MODO === 'prueba') app.appendChild(el('div', { class: 'aviso-prueba', role: 'status', text: t('prueba') }));
+  hijos.forEach(function (h) { app.appendChild(h); });
+  window.scrollTo(0, 0);
+}
+function hoja(hijos) { return el('div', { class: 'hoja' }, hijos); }
+function boton(texto, fn, sec) { return el('button', { type: 'button', class: 'btn' + (sec ? ' sec' : ''), text: texto, on: { click: fn } }); }
+
+// Dentro de Apps Script usa google.script.run; en la versión estática, fetch. Sin cabeceras propias para que
+// no haya consulta CORS previa, y sin cookies: el servidor no ve ninguna cuenta de Google.
+function llamar(fn, args, ok, ko) {
+  ko = ko || function (e) { alert((e && e.message) || t('errorRed')); };
+  if (!API) {
+    const r = google.script.run.withSuccessHandler(ok).withFailureHandler(ko);
+    r[fn].apply(r, args);
+    return;
+  }
+  fetch(API, { method: 'POST', body: JSON.stringify({ fn: fn, args: args }) })
+    .then(function (r) { return r.json(); })
+    .then(function (r) { if (r.error) ko(new Error(r.error)); else ok(r.ok); }, function () { ko(null); });
+}
+// Textos en el idioma elegido; los valores guardados son siempre los españoles
+function txt(q) { return S.idioma === 'en' && q.en && q.en.t ? q.en.t : q.t; }
+function ayudaQ(q) { return S.idioma === 'en' && q.en ? (q.en.a || '') : (q.a || ''); }
+function etq(q, o) { const tr = S.idioma === 'en' && q.en && q.en.o && q.en.o[o.v]; return tr ? tr[0] : o.v; }
+function defn(q, o) { const tr = S.idioma === 'en' && q.en && q.en.o && q.en.o[o.v]; return tr ? tr[1] : o.d; }
+
+// ---------- entrada ----------
+function inicio() {
+  pantalla([hoja([el('h1', {}, ['Fotografía de naturaleza', el('span', { class: 'otro', lang: 'en', text: 'Nature photography' })]),
+    el('div', { class: 'acciones' }, [
+      boton('Español', function () { S.idioma = 'es'; consentimiento(); }),
+      el('button', { type: 'button', class: 'btn', lang: 'en', text: 'English', on: { click: function () { S.idioma = 'en'; consentimiento(); } } })])])]);
+}
+function consentimiento() {
+  const c = t('cons');
+  pantalla([hoja([el('h1', { text: t('titulo') }), el('h2', { text: t('consTit') }),
+    el('p', { text: c[0] }), el('p', { text: c[1] }), el('p', { text: c[2] + CONTACTO + '.' }),
+    el('div', { class: 'acciones' }, [boton(t('acepto'), entrada)])])]);
+}
+function entrada() {
+  const r = recordado();
+  if (!r || !r.codigo) { perfil(); return; }
+  pantalla([hoja([el('h1', { text: t('hola') + r.nombre }),
+    el('div', { class: 'acciones' }, [
+      boton(t('seguirComo'), function () { S.codigo = r.codigo; S.nombre = r.nombre; modulos(); }),
+      boton(t('noSoy') + r.nombre, function () { olvidar(); perfil(); }, true)])])]);
+}
+function perfil() {
+  const nombre = el('input', { type: 'text', id: 'nombre', maxlength: '120', autocomplete: 'name', 'aria-describedby': 'nombre-nota' });
+  const sel = {};
+  const campos = Object.keys(VOCAB.perfil).map(function (k) {
+    const p = VOCAB.perfil[k];
+    sel[k] = el('select', { id: 'p-' + k }, [el('option', { value: '', text: t('elegir') })].concat(p.opciones.map(function (o) {
+      const tr = S.idioma === 'en' && p.en && p.en.o && p.en.o[o];
+      return el('option', { value: o, text: tr || o });
+    })));
+    return el('div', {}, [el('label', { class: 'campo', for: 'p-' + k, text: S.idioma === 'en' && p.en ? p.en.t : p.t }), sel[k]]);
+  });
+  const err = el('div', { class: 'error', role: 'alert' });
+  const b = boton(t('entrar'), function () {
+    const v = {};
+    Object.keys(sel).forEach(function (k) { v[k] = sel[k].value; });
+    const n = nombre.value.trim().replace(/\s+/g, ' ');
+    if (n.length < 3) { err.textContent = t('faltaNombre'); nombre.focus(); return; }
+    if (Object.keys(v).some(function (k) { return !v[k]; })) { err.textContent = t('faltaPerfil'); return; }
+    err.textContent = ''; b.disabled = true;
+    llamar('entrar', [MODO, S.idioma, n, v], function (c) {
+      S.codigo = c; S.nombre = n.split(' ')[0];
+      recordar({ nombre: S.nombre, codigo: c });
+      modulos();
+    }, function (e) { b.disabled = false; err.textContent = (e && e.message) || t('errorRed'); });
+  });
+  pantalla([hoja([el('h1', { text: t('quienTit') }),
+    el('label', { class: 'campo', for: 'nombre', text: t('nombre') }), nombre,
+    el('p', { class: 'nota', id: 'nombre-nota', text: t('nombreNota') })]
+    .concat(campos).concat([el('div', { class: 'acciones' }, [b]), err]))]);
+  nombre.focus();
+}
+function modulos() {
+  const op = function (m) {
+    return el('button', { type: 'button', class: 'btn modulo', on: { click: function () { S.modulo = m; lote(); } } },
+      [t(m), el('span', { text: t(m + 'D') })]);
+  };
+  pantalla([hoja([el('h1', { text: t('modTit') }), op('bio'), op('est')])]);
+}
+function lote() {
+  pantalla([hoja([el('p', { role: 'status', text: t('cargando') })])]);
+  llamar('pedirLote', [MODO, S.codigo, S.modulo], function (l) {
+    if (!l.length) { finLote(t('sinFotos')); return; }
+    S.lote = l; S.i = 0; mostrarFoto();
+  }, function (e) {
+    pantalla([hoja([el('p', { class: 'error', role: 'alert', text: (e && e.message) || t('errorRed') }),
+      el('div', { class: 'acciones' }, [boton(t('otroLote'), lote), boton(t('cambiar'), modulos, true)])])]);
+  });
+}
+function finLote(msg) {
+  pantalla([hoja([el('h1', { text: msg || t('finLote') }), el('div', { class: 'acciones' }, [
+    msg ? null : boton(t('otroLote'), lote),
+    boton(t('cambiar'), modulos, true),
+    boton(t('salir'), function () { pantalla([hoja([el('h1', { text: t('adios') })])]); }, true)])])]);
+}
+
+// ---------- una foto ----------
+let bloques = {};
+function mostrarFoto() {
+  const it = S.lote[S.i];
+  S.resp = {}; S.ayudas = {}; S.t0 = Date.now(); bloques = {};
+  const lista = el('div', { class: 'preguntas' });
+  VOCAB.modulos[S.modulo].forEach(function (id) {
+    const q = VOCAB.preguntas[id];
+    if (id === 'E23') lista.appendChild(el('h2', { class: 'bloque', text: t('interp') }));
+    const caja = el('section', { class: 'q', 'data-id': id, 'aria-labelledby': 'qt-' + id });
+    bloques[id] = { caja: caja, ops: el('div', {}), clave: null };
+    const ayuda = el('div', { class: 'ayuda', id: 'ay-' + id, hidden: 'hidden' });
+    const ab = el('button', { type: 'button', class: 'ayudab', text: '?', 'aria-label': t('ayuda'), 'aria-expanded': 'false', 'aria-controls': 'ay-' + id });
+    ab.addEventListener('click', function () {
+      S.ayudas[id] = true; ayuda.hidden = !ayuda.hidden;
+      ab.setAttribute('aria-expanded', String(!ayuda.hidden));
+      if (!ayuda.hidden) pintarAyuda(q, ayuda);
+    });
+    caja.appendChild(el('div', { class: 'qt' }, [el('span', { id: 'qt-' + id }, [txt(q),
+      q.tipo === 'M' ? el('small', { text: ' (' + t('hasta') + ' ' + q.max + ' ' + t('opciones') + ')' }) : null]), ab]));
+    caja.appendChild(ayuda);
+    caja.appendChild(bloques[id].ops);
+    lista.appendChild(caja);
+  });
+  const coment = el('textarea', { id: 'coment', rows: '2', maxlength: '1000' });
+  const err = el('div', { class: 'error', role: 'alert' });
+  const ultima = S.i === S.lote.length - 1;
+  const b = el('button', { type: 'button', class: 'btn', text: t(ultima ? 'guardarFin' : 'guardar') });
+  b.addEventListener('click', function () { guardar(it, coment, b, err, ultima); });
+  lista.appendChild(el('div', { class: 'cierre' }, [el('label', { class: 'campo', for: 'coment', text: t('comentario') }), coment,
+    el('div', { class: 'acciones' }, [b]), err]));
+
+  const tira = el('ol', { class: 'tira', 'aria-hidden': 'true' }, S.lote.map(function (_, k) {
+    return el('li', { class: k < S.i ? 'hecha' : k === S.i ? 'ahora' : '' });
+  }));
+  const mesa = el('div', { class: 'mesa' }, [
+    el('div', { class: 'marco' }, [tira, el('span', { text: t('foto') + ' ' + (S.i + 1) + ' ' + t('de') + ' ' + S.lote.length })]),
+    el('img', { src: it.img, alt: t('foto') + ' ' + (S.i + 1) }),
+    el('a', { href: it.img.replace('sz=w800', 'sz=w2000'), target: '_blank', rel: 'noopener', text: t('ampliar') })]);
+  pantalla([el('div', { class: 'eval' }, [mesa, lista])]);
+  refrescar();
+}
+function pintarAyuda(q, caja) {
+  caja.innerHTML = '';
+  const a = ayudaQ(q);
+  if (a) caja.appendChild(el('p', { text: a }));
+  const fin = resolverPuertas(S.modulo, S.resp).final;
+  const dl = el('dl', {});
+  opcionesDe(q, fin).forEach(function (o) {
+    if (!defn(q, o)) return;
+    dl.appendChild(el('dt', { text: etq(q, o) }));
+    dl.appendChild(el('dd', { text: defn(q, o) }));
+  });
+  caja.appendChild(dl);
+}
+// Muestra u oculta cada pregunta según las puertas y repinta las opciones que dependen del reino
+function refrescar() {
+  const fin = resolverPuertas(S.modulo, S.resp).final;
+  VOCAB.modulos[S.modulo].forEach(function (id) {
+    const b = bloques[id], q = VOCAB.preguntas[id], visible = fin[id].origen === 'respuesta';
+    b.caja.hidden = !visible;
+    if (!visible) return;
+    const clave = q.opcionesSegun ? fin[q.opcionesSegun].valor : '-';
+    if (b.clave !== clave) {
+      if (b.clave !== null) delete S.resp[id];
+      b.clave = clave; pintarOpciones(q, b.ops, fin);
+    }
+  });
+}
+function pintarOpciones(q, cont, fin) {
+  cont.innerHTML = '';
+  const id = q.id;
+  if (q.tipo === 'texto') {
+    const inp = el('input', { type: 'text', maxlength: '200', 'aria-labelledby': 'qt-' + id });
+    const chk = el('input', { type: 'checkbox' });
+    const poner = function () { inp.disabled = chk.checked; S.resp[id] = chk.checked ? q.noSe : (inp.value.trim() || undefined); refrescar(); };
+    inp.addEventListener('input', poner); chk.addEventListener('change', poner);
+    cont.appendChild(el('div', { class: 'texto' }, [el('div', { style: 'margin-top:10px' }, [inp]), el('label', {}, [chk, t('noSe')])]));
+    return;
+  }
+  const ops = opcionesDe(q, fin);
+  const caja = el('div', { class: q.rejilla ? 'rejilla' : 'ops', role: 'group', 'aria-labelledby': 'qt-' + id });
+  const botones = [];
+  ops.forEach(function (o) {
+    if (q.tipo === 'O' && o.fuera) caja.appendChild(el('span', { class: 'sep' }));
+    const b = el('button', { type: 'button', 'aria-pressed': 'false', title: q.rejilla ? etq(q, o) : (defn(q, o) || ''),
+      text: q.rejilla ? '' : etq(q, o) });
+    if (q.rejilla) b.setAttribute('aria-label', etq(q, o));
+    b.addEventListener('click', function () { elegir(q, o, botones); });
+    b._v = o.v; botones.push(b); caja.appendChild(b);
+  });
+  cont.appendChild(caja);
+  if (q.id === 'E26') cont.appendChild(el('p', { class: 'nota', text: '1 = ' + t('nada') + ', 7 = ' + t('muchisimo') }));
+}
+function elegir(q, o, botones) {
+  const id = q.id;
+  if (q.tipo === 'M') {
+    let v = (S.resp[id] || []).slice();
+    const i = v.indexOf(o.v);
+    if (i >= 0) v.splice(i, 1);
+    else if (o.excl) v = [o.v];
+    else {
+      const excl = opcionesDe(q, resolverPuertas(S.modulo, S.resp).final).filter(function (x) { return x.excl; }).map(function (x) { return x.v; });
+      v = v.filter(function (x) { return excl.indexOf(x) < 0; });
+      if (v.length >= q.max) v.shift();
+      v.push(o.v);
+    }
+    S.resp[id] = v.length ? v : undefined;
+  } else S.resp[id] = o.v;
+  const sel = [].concat(S.resp[id] || []);
+  botones.forEach(function (b) { b.setAttribute('aria-pressed', String(sel.indexOf(b._v) >= 0)); });
+  refrescar();
+}
+function guardar(it, coment, b, err, ultima) {
+  const v = validarEnvio(S.modulo, S.resp);
+  if (v.errores.length) {
+    err.textContent = t('faltan');
+    const primero = v.errores[0].split(':')[0];
+    if (bloques[primero]) bloques[primero].caja.scrollIntoView({ block: 'center' });
+    return;
+  }
+  err.textContent = ''; b.disabled = true; b.textContent = t('guardando');
+  const visibles = {};
+  Object.keys(v.final).forEach(function (k) { if (v.final[k].origen === 'respuesta') visibles[k] = v.final[k].valor; });
+  const datos = { codigo: S.codigo, modulo: S.modulo, foto: it.foto, idioma: S.idioma, segundos: (Date.now() - S.t0) / 1000,
+    ayudas: Object.keys(S.ayudas), comentario: coment.value, respuestas: visibles };
+  llamar('guardarFoto', [MODO, datos], function () {
+    S.i++;
+    if (S.i < S.lote.length) mostrarFoto(); else finLote();
+  }, function (e) {
+    b.disabled = false; b.textContent = t(ultima ? 'guardarFin' : 'guardar'); err.textContent = (e && e.message) || t('errorRed');
+  });
+}
+inicio();
+</script>
+</body>
+</html>
