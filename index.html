@@ -10,8 +10,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   /* Interfaz sin color: nada alrededor de la foto debe sesgar cómo se juzgan saturación, color y temperatura.
-     La foto se mira sobre gris medio (18 %), como en una mesa de edición. */
-  :root { --papel:#efefef; --blanco:#fff; --tinta:#151515; --suave:#5a5a5a; --linea:#c6c6c6; --gris18:#767676;
+     La foto se mira sobre gris medio (18 %), como en una mesa de edición. Las pantallas de entrada son un
+     paspartú: lámina blanca centrada con una línea interior. */
+  :root { --papel:#e9e9e9; --blanco:#fff; --tinta:#151515; --suave:#595959; --linea:#c9c9c9; --gris18:#767676;
           --aviso:#9c4210; --aviso-bg:#f8e6d9; }
   * { box-sizing:border-box; }
   html { -webkit-text-size-adjust:100%; }
@@ -19,70 +20,114 @@
          font:17px/1.55 "Atkinson Hyperlegible Next","Atkinson Hyperlegible",system-ui,sans-serif; }
   :focus-visible { outline:3px solid var(--tinta); outline-offset:2px; }
   .mesa :focus-visible { outline-color:#fff; }
-  h1 { font-size:2rem; line-height:1.15; font-weight:700; letter-spacing:-.01em; margin:0 0 .6em; }
-  h2 { font-size:1.35rem; line-height:1.25; margin:0 0 .5em; }
-  p { margin:0 0 1em; max-width:36em; }
-  .suave { color:var(--suave); font-size:.94rem; }
-  .aviso-prueba { background:var(--aviso-bg); color:var(--aviso); font-weight:600; font-size:.92rem; padding:6px 16px; }
-
-  /* Pantallas de entrada: una columna estrecha, alineada a la izquierda */
-  .hoja { max-width:34rem; margin:0 auto; padding:9vh 16px 48px; }
-  .hoja .otro { color:var(--suave); font-size:1.35rem; font-weight:400; display:block; }
-  .acciones { display:flex; flex-wrap:wrap; gap:10px; margin-top:24px; }
+  h1 { font-size:2.1rem; line-height:1.15; font-weight:700; letter-spacing:-.01em; margin:0 0 .5em; text-wrap:balance; }
+  h2 { font-size:1.3rem; line-height:1.25; margin:0 0 .6em; text-wrap:balance; }
+  p { margin:0 auto 1em; max-width:32em; text-wrap:pretty; }
+  .aviso-prueba { background:var(--aviso-bg); color:var(--aviso); font-weight:600; font-size:.92rem; padding:6px 16px; text-align:center; }
   button { font:inherit; color:inherit; cursor:pointer; }
-  .btn { background:var(--tinta); color:#fff; border:1.5px solid var(--tinta); border-radius:4px; padding:.65em 1.2em; font-weight:600; }
+
+  /* ---------- pantallas de entrada: todo centrado sobre una lámina ---------- */
+  .escena { min-height:100vh; min-height:100dvh; display:flex; align-items:center; justify-content:center; padding:28px 16px 40px; }
+  .hoja { width:100%; max-width:36rem; background:var(--blanco); border:1px solid var(--linea); border-radius:6px; text-align:center;
+          padding:clamp(28px,7vw,52px) clamp(20px,6vw,48px); box-shadow:inset 0 0 0 9px var(--blanco), inset 0 0 0 10px var(--linea); }
+  .hoja .otro { color:var(--suave); font-size:1.3rem; font-weight:400; display:block; margin-top:.2em; }
+  .pasos { display:flex; justify-content:center; gap:7px; list-style:none; margin:0 0 26px; padding:0; }
+  .pasos li { width:8px; height:8px; border-radius:4px; background:var(--linea); }
+  .pasos li.hecho { background:var(--tinta); }
+  .pasos li.ahora { width:26px; background:var(--tinta); }
+  .logo { display:flex; justify-content:center; gap:6px; list-style:none; margin:0 0 24px; padding:0; }
+  .logo li { width:34px; height:24px; border:2px solid var(--tinta); border-radius:3px; }
+  .logo li:nth-child(3) { background:var(--tinta); }
+  .acciones { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-top:26px; }
+  .acciones.par > .btn { flex:1 1 0; min-width:9rem; }
+  .btn { background:var(--tinta); color:#fff; border:1.5px solid var(--tinta); border-radius:999px; padding:.7em 1.5em; font-weight:600; }
   .btn.sec { background:transparent; color:var(--tinta); }
   .btn:disabled { opacity:.45; cursor:progress; }
-  .modulo { text-align:left; display:block; width:100%; padding:16px 18px; margin-bottom:10px; }
-  .modulo span { display:block; font-weight:400; font-size:.94rem; opacity:.85; }
-  label.campo { display:block; font-weight:600; margin:18px 0 6px; }
-  .nota { font-size:.9rem; color:var(--suave); margin:6px 0 0; }
-  select, input[type=text], textarea { font:inherit; color:inherit; width:100%; padding:.55em .7em; background:var(--blanco);
-    border:1.5px solid var(--linea); border-radius:4px; }
-  select:focus, input:focus, textarea:focus { border-color:var(--tinta); }
-  .error { color:var(--aviso); font-weight:600; margin-top:10px; min-height:1.5em; }
+  .btn.ancho { width:100%; max-width:22rem; }
 
-  /* Evaluación: la foto a la izquierda, fija; las preguntas a la derecha */
-  .eval { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); align-items:start; }
-  .mesa { background:var(--gris18); color:#fff; position:sticky; top:0; height:100vh; padding:20px 24px;
-          display:flex; flex-direction:column; gap:14px; }
-  .mesa img { flex:1; min-height:0; width:100%; object-fit:contain; }
-  .mesa a { color:#fff; font-size:.92rem; }
-  .marco { display:flex; align-items:center; gap:14px; font-weight:600; font-size:.95rem; }
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:26px; }
+  .tile { background:var(--blanco); border:1.5px solid var(--linea); border-radius:10px; padding:22px 12px 20px;
+          display:flex; flex-direction:column; align-items:center; gap:6px; font-weight:700; font-size:1.12rem; line-height:1.25;
+          transition:border-color .15s, transform .15s; }
+  .tile:hover { border-color:var(--tinta); transform:translateY(-2px); }
+  .tile:active { transform:translateY(0); }
+  .tile svg { width:54px; height:54px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; margin-bottom:6px; }
+  .tile span { font-weight:400; font-size:.9rem; color:var(--suave); }
+  .tile .grande { font-size:1.6rem; font-weight:700; color:var(--tinta); }
+
+  .campos { display:grid; grid-template-columns:1fr 1fr; gap:4px 14px; }
+  .campos > .entero { grid-column:1 / -1; }
+  .campos > div { display:flex; flex-direction:column; }
+  .campos > div > select { margin-top:auto; } /* si una etiqueta ocupa dos líneas, los desplegables siguen alineados */
+  label.campo { display:block; font-weight:600; margin:16px 0 6px; }
+  .nota { font-size:.88rem; color:var(--suave); margin:8px auto 0; }
+  select, input[type=text], textarea { font:inherit; color:inherit; width:100%; padding:.55em .7em; background:var(--blanco);
+    border:1.5px solid var(--linea); border-radius:8px; }
+  select:focus, input:focus, textarea:focus { border-color:var(--tinta); }
+  .error { color:var(--aviso); font-weight:600; margin-top:12px; min-height:1.5em; }
+  .cuenta { font-size:1.05rem; color:var(--suave); }
+
+  /* ---------- evaluación: foto y preguntas a partes iguales ---------- */
+  .eval { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:start; }
+  .mesa { background:var(--gris18); color:#fff; position:sticky; top:0; height:100vh; height:100dvh; padding:20px 24px;
+          display:flex; flex-direction:column; align-items:center; gap:12px; }
+  .mesa img { flex:1; min-height:0; width:100%; object-fit:contain; animation:aparecer .35s ease-out; }
+  @keyframes aparecer { from { opacity:0; } }
+  .mesa a { color:#fff; font-size:.9rem; }
+  .marco { display:flex; flex-direction:column; align-items:center; gap:7px; font-weight:600; font-size:.95rem; }
   .tira { display:flex; gap:5px; list-style:none; margin:0; padding:0; }
   .tira li { width:26px; height:17px; border:1.5px solid rgba(255,255,255,.65); border-radius:2px; }
   .tira li.hecha { background:#fff; border-color:#fff; }
   .tira li.ahora { border:2.5px solid #fff; }
-  .preguntas { padding:20px clamp(16px,4vw,48px) 72px; max-width:660px; }
-  .q { padding:18px 0; border-top:1px solid var(--linea); }
+  .avance { width:min(300px,80%); height:5px; border-radius:3px; background:rgba(255,255,255,.28); overflow:hidden; }
+  .avance i { display:block; height:100%; width:0; background:#fff; border-radius:3px; transition:width .25s ease-out; }
+
+  .preguntas { width:100%; max-width:640px; margin:0 auto; padding:20px clamp(16px,3.5vw,40px) 72px; }
+  .q { background:var(--blanco); border:1.5px solid var(--linea); border-radius:12px; padding:16px 14px 18px; margin-top:12px;
+       text-align:center; transition:border-color .2s; }
   .q[hidden] { display:none; }
-  .preguntas > .q:first-child { border-top:0; }
-  .qt { display:flex; gap:12px; justify-content:space-between; align-items:flex-start; font-weight:600; }
-  .qt small { font-weight:400; color:var(--suave); }
-  .ayudab { flex:none; width:30px; height:30px; border-radius:50%; border:1.5px solid var(--linea); background:var(--blanco);
+  .q.lista { border-color:var(--tinta); }
+  .qt { display:grid; grid-template-columns:30px minmax(0,1fr) 30px; gap:10px; align-items:center; font-weight:600; line-height:1.35; }
+  .qt small { font-weight:400; color:var(--suave); display:block; }
+  .estado { width:24px; height:24px; justify-self:center; border-radius:50%; border:1.5px solid var(--linea);
+            display:grid; place-items:center; font-size:.8rem; color:#fff; transition:background .2s, border-color .2s; }
+  .q.lista .estado { background:var(--tinta); border-color:var(--tinta); }
+  .q.lista .estado::after { content:"✓"; }
+  .ayudab { width:30px; height:30px; border-radius:50%; border:1.5px solid var(--linea); background:var(--blanco);
             font-weight:700; line-height:1; padding:0; }
-  .ayudab[aria-expanded="true"] { border-color:var(--tinta); }
-  .ayuda { background:var(--blanco); border-left:3px solid var(--gris18); padding:10px 14px; margin-top:10px; font-size:.92rem; }
-  .ayuda p { margin:0 0 8px; } .ayuda dl { margin:0; } .ayuda dt { font-weight:600; } .ayuda dd { margin:0 0 6px; }
-  .ops { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
-  .ops button, .rejilla button { background:var(--blanco); border:1.5px solid var(--linea); border-radius:4px; padding:.38em .8em; }
+  .ayudab[aria-expanded="true"] { border-color:var(--tinta); background:var(--tinta); color:#fff; }
+  .ayuda { background:var(--papel); border-radius:8px; padding:12px 16px; margin:12px 0 0; font-size:.92rem; text-align:left; }
+  .ayuda p { margin:0 0 8px; max-width:none; } .ayuda dl { margin:0; } .ayuda dt { font-weight:600; } .ayuda dd { margin:0 0 6px; }
+  .ops { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:14px; }
+  .ops button, .rejilla button { background:var(--blanco); border:1.5px solid var(--linea); border-radius:999px; padding:.42em 1em;
+    min-height:40px; transition:transform .1s; }
   .ops button:hover, .rejilla button:hover { border-color:var(--tinta); }
+  .ops button:active, .rejilla button:active { transform:scale(.96); }
   .ops button[aria-pressed="true"], .rejilla button[aria-pressed="true"] { background:var(--tinta); border-color:var(--tinta); color:#fff; }
   .ops .sep { flex-basis:100%; height:0; }
-  .rejilla { display:grid; grid-template-columns:repeat(3,64px); gap:4px; margin-top:10px; }
-  .rejilla button { height:46px; padding:0; }
-  .texto label { display:flex; gap:8px; align-items:center; margin-top:8px; }
-  .bloque { margin:28px 0 4px; font-size:1.1rem; }
-  .cierre { border-top:1px solid var(--linea); padding-top:18px; }
-  .cierre .acciones { margin-top:14px; }
+  .rejilla { display:grid; grid-template-columns:repeat(3,64px); gap:5px; margin:14px auto 0; width:max-content; }
+  .rejilla button { height:46px; padding:0; border-radius:6px; }
+  .texto { max-width:24rem; margin:14px auto 0; }
+  .texto label { display:flex; gap:8px; align-items:center; justify-content:center; margin-top:10px; }
+  .bloque { display:flex; align-items:center; gap:14px; margin:32px 0 6px; font-size:1.05rem; text-align:center; }
+  .bloque::before, .bloque::after { content:""; flex:1; height:1px; background:var(--linea); }
+  .cierre { text-align:center; margin-top:22px; }
+  .cierre .acciones { margin-top:16px; }
 
   @media (max-width:860px) {
-    h1 { font-size:1.7rem; }
     .eval { display:block; }
-    .mesa { height:40vh; padding:10px 16px; gap:8px; z-index:1; }
-    .preguntas { padding-top:8px; }
+    .mesa { height:42vh; height:42dvh; padding:10px 16px; gap:7px; z-index:1; }
+    .marco { flex-direction:row; gap:12px; }
+    .preguntas { padding-top:6px; }
   }
-  @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; } }
+  @media (max-width:520px) {
+    h1 { font-size:1.7rem; }
+    .campos { grid-template-columns:1fr; }
+  }
+  @media (max-width:340px) { .duo { grid-template-columns:1fr; } }
+  @media (prefers-reduced-motion:reduce) {
+    *, *::before, *::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; }
+  }
 </style>
 </head>
 <body>
@@ -167,8 +212,8 @@ const API = "https://script.google.com/macros/s/AKfycbyfqqWqxoiVbA9V_eNK7MJkGeW3
 const T = {
   es: {
     prueba: 'Modo prueba: estas respuestas no cuentan',
-    titulo: 'Encuesta de fotografía de naturaleza',
-    consTit: 'Antes de empezar',
+    titulo: 'Encuesta de fotografía de naturaleza', empezar: 'Empezar',
+    paso: 'Paso', consTit: 'Antes de empezar',
     cons: ['Este estudio compara cómo describen las fotografías de naturaleza las personas y los modelos de inteligencia artificial.',
       'Tus respuestas se publicarán una a una como datos abiertos, junto a tu perfil (formación, nivel y experiencia) y un código anónimo. Tu nombre no se guarda: solo sirve para reconocerte cuando vuelvas, y se convierte en ese código.',
       'Puedes dejarlo cuando quieras; lo que hayas enviado se conserva. Para cualquier duda, o para pedir que se retiren tus respuestas, escribe a '],
@@ -184,14 +229,15 @@ const T = {
     noSe: 'No lo sé', hasta: 'hasta', opciones: 'opciones', interp: 'Tu opinión: aquí no hay respuestas correctas',
     ayuda: 'Ayuda',
     finLote: 'Lote terminado. Gracias.', otroLote: 'Otro lote', cambiar: 'Cambiar de módulo', salir: 'Salir',
+    llevas: function (n) { return 'Llevas ' + n + (n === 1 ? ' foto evaluada' : ' fotos evaluadas') + ' en esta visita.'; },
     adios: 'Gracias por participar. Ya puedes cerrar esta pestaña.', sinFotos: 'Has evaluado todas las fotos de este módulo. Gracias.',
     cargando: 'Cargando…', errorRed: 'No hay conexión con el servidor. Comprueba tu conexión y vuelve a intentarlo.',
     nada: 'nada', muchisimo: 'muchísimo',
   },
   en: {
     prueba: 'Test mode: these answers do not count',
-    titulo: 'Nature photography survey',
-    consTit: 'Before you start',
+    titulo: 'Nature photography survey', empezar: 'Start',
+    paso: 'Step', consTit: 'Before you start',
     cons: ['This study compares how people and artificial intelligence models describe nature photographs.',
       'Your answers will be published one by one as open data, together with your profile (background, level and experience) and an anonymous code. Your name is not stored: it is only used to recognise you when you come back, and it is turned into that code.',
       'You can stop whenever you want; whatever you have sent is kept. For any question, or to ask for your answers to be removed, write to '],
@@ -207,12 +253,13 @@ const T = {
     noSe: "I don't know", hasta: 'up to', opciones: 'options', interp: 'Your opinion: there are no right answers here',
     ayuda: 'Help',
     finLote: 'Batch finished. Thank you.', otroLote: 'Another batch', cambiar: 'Change module', salir: 'Exit',
+    llevas: function (n) { return 'You have evaluated ' + n + (n === 1 ? ' photo' : ' photos') + ' on this visit.'; },
     adios: 'Thank you for taking part. You can close this tab now.', sinFotos: 'You have evaluated every photo in this module. Thank you.',
     cargando: 'Loading…', errorRed: 'The server cannot be reached. Check your connection and try again.',
     nada: 'not at all', muchisimo: 'very much',
   },
 };
-const S = { idioma: 'es', codigo: null, nombre: '', modulo: null, lote: [], i: 0, resp: {}, ayudas: {}, t0: 0 };
+const S = { idioma: 'es', codigo: null, nombre: '', modulo: null, lote: [], i: 0, resp: {}, ayudas: {}, t0: 0, hechas: 0 };
 const app = document.getElementById('app');
 const t = function (k) { return T[S.idioma][k]; };
 const CLAVE = 'encuesta_v2_persona_' + MODO; // el nombre solo se queda en este navegador
@@ -220,8 +267,9 @@ function recordar(p) { try { localStorage.setItem(CLAVE, JSON.stringify(p)); } c
 function recordado() { try { return JSON.parse(localStorage.getItem(CLAVE)); } catch (e) { return null; } }
 function olvidar() { try { localStorage.removeItem(CLAVE); } catch (e) {} }
 
+const SVGNS = 'http://www.w3.org/2000/svg';
 function el(tag, props, hijos) {
-  const n = document.createElement(tag);
+  const n = tag.indexOf('svg:') === 0 ? document.createElementNS(SVGNS, tag.slice(4)) : document.createElement(tag);
   Object.keys(props || {}).forEach(function (k) {
     if (k === 'on') Object.keys(props.on).forEach(function (ev) { n.addEventListener(ev, props.on[ev]); });
     else if (k === 'text') n.textContent = props[k];
@@ -230,6 +278,13 @@ function el(tag, props, hijos) {
   (hijos || []).forEach(function (h) { if (h) n.appendChild(typeof h === 'string' ? document.createTextNode(h) : h); });
   return n;
 }
+// Iconos de trazo, sin color: hoja con nervios (biológico) y encuadre con tercios y sol (estético)
+function icono(m) {
+  const d = m === 'bio'
+    ? ['M12 44C12 22 26 10 46 10c0 22-12 34-34 34Z', 'M12 44 34 22', 'M22 34h10', 'M27 28v-9']
+    : ['M8 14h40v28H8Z', 'M21.3 14v28', 'M34.7 14v28', 'M8 23.3h40', 'M8 32.7h40', 'M38 21.5a3 3 0 1 0 .01 0'];
+  return el('svg:svg', { viewBox: '0 0 56 56', 'aria-hidden': 'true' }, d.map(function (p) { return el('svg:path', { d: p }); }));
+}
 function pantalla(hijos) {
   app.innerHTML = '';
   document.documentElement.lang = S.idioma;
@@ -237,7 +292,12 @@ function pantalla(hijos) {
   hijos.forEach(function (h) { app.appendChild(h); });
   window.scrollTo(0, 0);
 }
-function hoja(hijos) { return el('div', { class: 'hoja' }, hijos); }
+// Lámina centrada; paso = posición en la entrada (1 a 3), para los puntos de arriba
+function hoja(hijos, paso) {
+  const pasos = paso ? el('ol', { class: 'pasos', 'aria-label': t('paso') + ' ' + paso + ' ' + t('de') + ' 3' },
+    [1, 2, 3].map(function (k) { return el('li', { class: k < paso ? 'hecho' : k === paso ? 'ahora' : '' }); })) : null;
+  return el('div', { class: 'escena' }, [el('div', { class: 'hoja' }, [pasos].concat(hijos))]);
+}
 function boton(texto, fn, sec) { return el('button', { type: 'button', class: 'btn' + (sec ? ' sec' : ''), text: texto, on: { click: fn } }); }
 
 // Dentro de Apps Script usa google.script.run; en la versión estática, fetch. Sin cabeceras propias para que
@@ -261,24 +321,27 @@ function defn(q, o) { const tr = S.idioma === 'en' && q.en && q.en.o && q.en.o[o
 
 // ---------- entrada ----------
 function inicio() {
-  pantalla([hoja([el('h1', {}, ['Fotografía de naturaleza', el('span', { class: 'otro', lang: 'en', text: 'Nature photography' })]),
-    el('div', { class: 'acciones' }, [
-      boton('Español', function () { S.idioma = 'es'; consentimiento(); }),
-      el('button', { type: 'button', class: 'btn', lang: 'en', text: 'English', on: { click: function () { S.idioma = 'en'; consentimiento(); } } })])])]);
+  const idioma = function (cod, nombre, sub) {
+    return el('button', { type: 'button', class: 'tile', lang: cod, on: { click: function () { S.idioma = cod; consentimiento(); } } },
+      [el('span', { class: 'grande', text: nombre }), el('span', { text: sub })]);
+  };
+  pantalla([hoja([el('ol', { class: 'logo', 'aria-hidden': 'true' }, [1, 2, 3, 4, 5].map(function () { return el('li'); })),
+    el('h1', {}, ['Fotografía de naturaleza', el('span', { class: 'otro', lang: 'en', text: 'Nature photography' })]),
+    el('div', { class: 'duo' }, [idioma('es', 'Español', 'Empezar'), idioma('en', 'English', 'Start')])])]);
 }
 function consentimiento() {
   const c = t('cons');
   pantalla([hoja([el('h1', { text: t('titulo') }), el('h2', { text: t('consTit') }),
     el('p', { text: c[0] }), el('p', { text: c[1] }), el('p', { text: c[2] + CONTACTO + '.' }),
-    el('div', { class: 'acciones' }, [boton(t('acepto'), entrada)])])]);
+    el('div', { class: 'acciones' }, [el('button', { type: 'button', class: 'btn ancho', text: t('acepto'), on: { click: entrada } })])], 1)]);
 }
 function entrada() {
   const r = recordado();
   if (!r || !r.codigo) { perfil(); return; }
   pantalla([hoja([el('h1', { text: t('hola') + r.nombre }),
-    el('div', { class: 'acciones' }, [
+    el('div', { class: 'acciones par' }, [
       boton(t('seguirComo'), function () { S.codigo = r.codigo; S.nombre = r.nombre; modulos(); }),
-      boton(t('noSoy') + r.nombre, function () { olvidar(); perfil(); }, true)])])]);
+      boton(t('noSoy') + r.nombre, function () { olvidar(); perfil(); }, true)])], 2)]);
 }
 function perfil() {
   const nombre = el('input', { type: 'text', id: 'nombre', maxlength: '120', autocomplete: 'name', 'aria-describedby': 'nombre-nota' });
@@ -292,7 +355,8 @@ function perfil() {
     return el('div', {}, [el('label', { class: 'campo', for: 'p-' + k, text: S.idioma === 'en' && p.en ? p.en.t : p.t }), sel[k]]);
   });
   const err = el('div', { class: 'error', role: 'alert' });
-  const b = boton(t('entrar'), function () {
+  const b = el('button', { type: 'button', class: 'btn ancho', text: t('entrar') });
+  b.addEventListener('click', function () {
     const v = {};
     Object.keys(sel).forEach(function (k) { v[k] = sel[k].value; });
     const n = nombre.value.trim().replace(/\s+/g, ' ');
@@ -306,17 +370,17 @@ function perfil() {
     }, function (e) { b.disabled = false; err.textContent = (e && e.message) || t('errorRed'); });
   });
   pantalla([hoja([el('h1', { text: t('quienTit') }),
-    el('label', { class: 'campo', for: 'nombre', text: t('nombre') }), nombre,
-    el('p', { class: 'nota', id: 'nombre-nota', text: t('nombreNota') })]
-    .concat(campos).concat([el('div', { class: 'acciones' }, [b]), err]))]);
+    el('div', { class: 'campos' }, [el('div', { class: 'entero' }, [el('label', { class: 'campo', for: 'nombre', text: t('nombre') }), nombre,
+      el('p', { class: 'nota', id: 'nombre-nota', text: t('nombreNota') })])].concat(campos)),
+    el('div', { class: 'acciones' }, [b]), err], 2)]);
   nombre.focus();
 }
 function modulos() {
   const op = function (m) {
-    return el('button', { type: 'button', class: 'btn modulo', on: { click: function () { S.modulo = m; lote(); } } },
-      [t(m), el('span', { text: t(m + 'D') })]);
+    return el('button', { type: 'button', class: 'tile', on: { click: function () { S.modulo = m; lote(); } } },
+      [icono(m), t(m), el('span', { text: t(m + 'D') })]);
   };
-  pantalla([hoja([el('h1', { text: t('modTit') }), op('bio'), op('est')])]);
+  pantalla([hoja([el('h1', { text: t('modTit') }), el('div', { class: 'duo' }, [op('bio'), op('est')])], 3)]);
 }
 function lote() {
   pantalla([hoja([el('p', { role: 'status', text: t('cargando') })])]);
@@ -325,18 +389,21 @@ function lote() {
     S.lote = l; S.i = 0; mostrarFoto();
   }, function (e) {
     pantalla([hoja([el('p', { class: 'error', role: 'alert', text: (e && e.message) || t('errorRed') }),
-      el('div', { class: 'acciones' }, [boton(t('otroLote'), lote), boton(t('cambiar'), modulos, true)])])]);
+      el('div', { class: 'acciones par' }, [boton(t('otroLote'), lote), boton(t('cambiar'), modulos, true)])])]);
   });
 }
 function finLote(msg) {
-  pantalla([hoja([el('h1', { text: msg || t('finLote') }), el('div', { class: 'acciones' }, [
-    msg ? null : boton(t('otroLote'), lote),
-    boton(t('cambiar'), modulos, true),
-    boton(t('salir'), function () { pantalla([hoja([el('h1', { text: t('adios') })])]); }, true)])])]);
+  const tira = el('ol', { class: 'logo', 'aria-hidden': 'true' }, S.lote.map(function () { return el('li', { style: 'background:var(--tinta)' }); }));
+  pantalla([hoja([msg ? null : tira, el('h1', { text: msg || t('finLote') }),
+    S.hechas ? el('p', { class: 'cuenta', text: t('llevas')(S.hechas) }) : null,
+    el('div', { class: 'acciones par' }, [
+      msg ? null : boton(t('otroLote'), lote),
+      boton(t('cambiar'), modulos, true)]),
+    el('div', { class: 'acciones' }, [boton(t('salir'), function () { pantalla([hoja([el('h1', { text: t('adios') })])]); }, true)])])]);
 }
 
 // ---------- una foto ----------
-let bloques = {};
+let bloques = {}, barra = null;
 function mostrarFoto() {
   const it = S.lote[S.i];
   S.resp = {}; S.ayudas = {}; S.t0 = Date.now(); bloques = {};
@@ -353,8 +420,8 @@ function mostrarFoto() {
       ab.setAttribute('aria-expanded', String(!ayuda.hidden));
       if (!ayuda.hidden) pintarAyuda(q, ayuda);
     });
-    caja.appendChild(el('div', { class: 'qt' }, [el('span', { id: 'qt-' + id }, [txt(q),
-      q.tipo === 'M' ? el('small', { text: ' (' + t('hasta') + ' ' + q.max + ' ' + t('opciones') + ')' }) : null]), ab]));
+    caja.appendChild(el('div', { class: 'qt' }, [el('span', { class: 'estado', 'aria-hidden': 'true' }), el('span', { id: 'qt-' + id }, [txt(q),
+      q.tipo === 'M' ? el('small', { text: '(' + t('hasta') + ' ' + q.max + ' ' + t('opciones') + ')' }) : null]), ab]));
     caja.appendChild(ayuda);
     caja.appendChild(bloques[id].ops);
     lista.appendChild(caja);
@@ -362,7 +429,7 @@ function mostrarFoto() {
   const coment = el('textarea', { id: 'coment', rows: '2', maxlength: '1000' });
   const err = el('div', { class: 'error', role: 'alert' });
   const ultima = S.i === S.lote.length - 1;
-  const b = el('button', { type: 'button', class: 'btn', text: t(ultima ? 'guardarFin' : 'guardar') });
+  const b = el('button', { type: 'button', class: 'btn ancho', text: t(ultima ? 'guardarFin' : 'guardar') });
   b.addEventListener('click', function () { guardar(it, coment, b, err, ultima); });
   lista.appendChild(el('div', { class: 'cierre' }, [el('label', { class: 'campo', for: 'coment', text: t('comentario') }), coment,
     el('div', { class: 'acciones' }, [b]), err]));
@@ -370,9 +437,11 @@ function mostrarFoto() {
   const tira = el('ol', { class: 'tira', 'aria-hidden': 'true' }, S.lote.map(function (_, k) {
     return el('li', { class: k < S.i ? 'hecha' : k === S.i ? 'ahora' : '' });
   }));
+  barra = el('i');
   const mesa = el('div', { class: 'mesa' }, [
     el('div', { class: 'marco' }, [tira, el('span', { text: t('foto') + ' ' + (S.i + 1) + ' ' + t('de') + ' ' + S.lote.length })]),
     el('img', { src: it.img, alt: t('foto') + ' ' + (S.i + 1) }),
+    el('div', { class: 'avance', 'aria-hidden': 'true' }, [barra]),
     el('a', { href: it.img.replace('sz=w800', 'sz=w2000'), target: '_blank', rel: 'noopener', text: t('ampliar') })]);
   pantalla([el('div', { class: 'eval' }, [mesa, lista])]);
   refrescar();
@@ -390,9 +459,11 @@ function pintarAyuda(q, caja) {
   });
   caja.appendChild(dl);
 }
-// Muestra u oculta cada pregunta según las puertas y repinta las opciones que dependen del reino
+// Muestra u oculta cada pregunta según las puertas, repinta las opciones que dependen del reino
+// y marca las respondidas (círculo y barra bajo la foto)
 function refrescar() {
   const fin = resolverPuertas(S.modulo, S.resp).final;
+  let vis = 0, hechas = 0;
   VOCAB.modulos[S.modulo].forEach(function (id) {
     const b = bloques[id], q = VOCAB.preguntas[id], visible = fin[id].origen === 'respuesta';
     b.caja.hidden = !visible;
@@ -402,7 +473,11 @@ function refrescar() {
       if (b.clave !== null) delete S.resp[id];
       b.clave = clave; pintarOpciones(q, b.ops, fin);
     }
+    const lista = S.resp[id] !== undefined;
+    b.caja.classList.toggle('lista', lista);
+    vis++; if (lista) hechas++;
   });
+  if (barra) barra.style.width = (vis ? 100 * hechas / vis : 0) + '%';
 }
 function pintarOpciones(q, cont, fin) {
   cont.innerHTML = '';
@@ -412,7 +487,7 @@ function pintarOpciones(q, cont, fin) {
     const chk = el('input', { type: 'checkbox' });
     const poner = function () { inp.disabled = chk.checked; S.resp[id] = chk.checked ? q.noSe : (inp.value.trim() || undefined); refrescar(); };
     inp.addEventListener('input', poner); chk.addEventListener('change', poner);
-    cont.appendChild(el('div', { class: 'texto' }, [el('div', { style: 'margin-top:10px' }, [inp]), el('label', {}, [chk, t('noSe')])]));
+    cont.appendChild(el('div', { class: 'texto' }, [inp, el('label', {}, [chk, t('noSe')])]));
     return;
   }
   const ops = opcionesDe(q, fin);
@@ -462,7 +537,7 @@ function guardar(it, coment, b, err, ultima) {
   const datos = { codigo: S.codigo, modulo: S.modulo, foto: it.foto, idioma: S.idioma, segundos: (Date.now() - S.t0) / 1000,
     ayudas: Object.keys(S.ayudas), comentario: coment.value, respuestas: visibles };
   llamar('guardarFoto', [MODO, datos], function () {
-    S.i++;
+    S.i++; S.hechas++;
     if (S.i < S.lote.length) mostrarFoto(); else finLote();
   }, function (e) {
     b.disabled = false; b.textContent = t(ultima ? 'guardarFin' : 'guardar'); err.textContent = (e && e.message) || t('errorRed');
