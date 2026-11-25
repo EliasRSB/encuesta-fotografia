@@ -73,6 +73,11 @@
           display:flex; flex-direction:column; align-items:center; gap:12px; }
   .mesa img { flex:1; min-height:0; width:100%; object-fit:contain; animation:aparecer .35s ease-out; }
   @keyframes aparecer { from { opacity:0; } }
+  .sinfoto { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; text-align:center; }
+  /* Envíos en segundo plano: una nota fija abajo mientras queda algo por guardar o si algo falla */
+  .envio { position:fixed; left:50%; bottom:14px; transform:translateX(-50%); z-index:5; max-width:calc(100% - 32px);
+           background:var(--tinta); color:#fff; padding:.45em 1em; border-radius:999px; font-size:.88rem; }
+  .envio.mal { background:var(--aviso); cursor:pointer; }
   .ver { background:none; border:0; color:#fff; text-decoration:underline; font-size:.9rem; padding:4px 8px; }
   /* Visor a pantalla completa: mismo gris medio que la mesa; se cierra con el botón, tocando la foto, Esc o «atrás» */
   dialog.visor { width:100vw; height:100vh; height:100dvh; max-width:none; max-height:none; margin:0; padding:0; border:0;
@@ -248,6 +253,10 @@ const T = {
     modTit: '¿Qué quieres evaluar?', bio: 'Biología y ecología', bioD: 'Qué organismo es, qué hace y dónde está.',
     est: 'Estética y fotografía', estD: 'Composición, luz, color y técnica.',
     foto: 'Foto', de: 'de', ampliar: 'Ver en grande', guardar: 'Guardar y seguir', guardarFin: 'Guardar y terminar el lote', guardando: 'Guardando…',
+    pendientes: function (n) { return n === 1 ? 'Guardando 1 foto…' : 'Guardando ' + n + ' fotos…'; },
+    sinRed: 'Sin conexión: tus respuestas se guardarán en cuanto vuelva.',
+    falloGuardar: 'No se pudo guardar una foto. ', cerrarAviso: ' (toca para cerrar)',
+    fotoError: 'La foto no ha cargado.', reintentar: 'Volver a intentarlo',
     faltan: 'Falta alguna pregunta por responder.', comentario: '¿Algo que no encajaba en las opciones? (opcional)',
     noSe: 'No lo sé', hasta: 'hasta', opciones: 'opciones', interp: 'Tu opinión: aquí no hay respuestas correctas',
     ayuda: 'Ayuda', cerrarAyuda: 'Cerrar la ayuda', atras: 'Atrás',
@@ -276,6 +285,10 @@ const T = {
     modTit: 'What do you want to evaluate?', bio: 'Biology and ecology', bioD: 'Which organism it is, what it does and where it is.',
     est: 'Aesthetics and photography', estD: 'Composition, light, colour and technique.',
     foto: 'Photo', de: 'of', ampliar: 'View larger', guardar: 'Save and continue', guardarFin: 'Save and finish the batch', guardando: 'Saving…',
+    pendientes: function (n) { return n === 1 ? 'Saving 1 photo…' : 'Saving ' + n + ' photos…'; },
+    sinRed: 'No connection: your answers will be saved as soon as it is back.',
+    falloGuardar: 'A photo could not be saved. ', cerrarAviso: ' (tap to close)',
+    fotoError: 'The photo did not load.', reintentar: 'Try again',
     faltan: 'Some questions are still unanswered.', comentario: 'Anything that did not fit the options? (optional)',
     noSe: "I don't know", hasta: 'up to', opciones: 'options', interp: 'Your opinion: there are no right answers here',
     ayuda: 'Help', cerrarAyuda: 'Close help', atras: 'Back',
@@ -290,7 +303,7 @@ const T = {
     nada: 'not at all', muchisimo: 'very much',
   },
 };
-const S = { idioma: 'es', codigo: null, nombre: '', modulo: null, lote: [], i: 0, resp: {}, ayudas: {}, t0: 0, hechas: 0, enFoto: false };
+const S = { idioma: 'es', codigo: null, nombre: '', modulo: null, lote: [], i: 0, resp: {}, ayudas: {}, t0: 0, hechas: 0, enFoto: false, vista: 0, precarga: [] };
 const app = document.getElementById('app');
 const t = function (k) { return T[S.idioma][k]; };
 const CLAVE = 'encuesta_v2_persona_' + MODO; // el nombre solo se queda en este navegador
@@ -327,7 +340,7 @@ window.addEventListener('popstate', function () {
   if (abierto) abierto.close(); else atras();
 });
 function hayMarcas() { return S.enFoto && Object.keys(S.resp).some(function (k) { return S.resp[k] !== undefined; }); }
-window.addEventListener('beforeunload', function (e) { if (hayMarcas()) { e.preventDefault(); e.returnValue = t('dejar'); } });
+window.addEventListener('beforeunload', function (e) { if (hayMarcas() || cola.length) { e.preventDefault(); e.returnValue = t('dejar'); } });
 
 // Ventana modal propia; se borra al cerrarse (botón, Esc o «atrás»)
 function modal(clase, hijos, etiqueta) {
@@ -341,10 +354,70 @@ function verGrande(src, alt) {
   let d = null;
   const cerrar = el('button', { type: 'button', class: 'btn claro', text: '✕ ' + t('cerrar'), on: { click: function () { d.close(); } } });
   d = modal('visor', [el('div', { class: 'barra' }, [cerrar]),
-    el('img', { src: src, alt: alt, on: { click: function () { d.close(); } } }),
+    imagen(src, alt, function () { d.close(); }),
     el('p', { class: 'pista', text: t('pistaVisor') })], alt);
   cerrar.focus();
 }
+// Drive rechaza las miniaturas que se piden desde otra web si el navegador manda la dirección de la página (Referer):
+// por eso no-referrer. Si aun así falla, se prueba la otra dirección de Drive y, al final, se ofrece reintentar.
+function otraUrl(src) {
+  return src.replace(/^https:\/\/lh3\.googleusercontent\.com\/d\/([^=]+)=w(\d+)$/, 'https://drive.google.com/thumbnail?id=$1&sz=w$2');
+}
+function imagen(src, alt, alPulsar) {
+  const i = el('img', { referrerpolicy: 'no-referrer', alt: alt });
+  if (alPulsar) i.addEventListener('click', alPulsar);
+  let intentos = 0;
+  i.addEventListener('error', function () {
+    if (intentos++ < 2) { setTimeout(function () { i.src = intentos === 1 ? otraUrl(src) : src; }, 700 * intentos); return; }
+    const caja = el('div', { class: 'sinfoto', role: 'alert' }, [el('p', { text: t('fotoError') }),
+      el('button', { type: 'button', class: 'btn claro', text: t('reintentar'),
+        on: { click: function () { intentos = 0; caja.replaceWith(i); i.src = otraUrl(src); } } })]);
+    i.replaceWith(caja);
+  });
+  i.src = src;
+  return i;
+}
+function precargar(lote) {
+  S.precarga = lote.map(function (it) { const i = new Image(); i.referrerPolicy = 'no-referrer'; i.src = it.img; return i; });
+}
+
+// ---------- envíos en segundo plano ----------
+// «Guardar y seguir» pasa a la foto siguiente al momento y el envío sigue detrás. Si se corta la conexión, se
+// reintenta, también tras recargar la página, porque la cola se guarda en el navegador. El servidor descarta los
+// envíos repetidos. Antes de pedir otro lote se espera a que la cola se vacíe: si no, el servidor devolvería como
+// pendientes las fotos que aún se están guardando.
+const COLA = 'encuesta_v2_cola_' + MODO;
+let cola = [], enviando = false, esperan = [], espera = 0, fallo = '';
+try { cola = JSON.parse(localStorage.getItem(COLA) || '[]'); } catch (e) {}
+function guardarCola() { try { localStorage.setItem(COLA, JSON.stringify(cola)); } catch (e) {} }
+const notaEnvio = el('div', { class: 'envio', role: 'status', hidden: 'hidden',
+  on: { click: function () { if (fallo) { fallo = ''; avisar(); } } } });
+document.body.appendChild(notaEnvio);
+// Sin texto, muestra el último fallo (si lo hay) hasta que se toca
+function avisar(texto, mal) {
+  const txt = texto || (fallo ? fallo + t('cerrarAviso') : '');
+  notaEnvio.textContent = txt; notaEnvio.hidden = !txt; notaEnvio.classList.toggle('mal', !!mal || (!texto && !!fallo));
+}
+function encolar(datos) { cola.push({ datos: datos, rechazos: 0 }); guardarCola(); enviar(); }
+function trasGuardar(fn) { if (!cola.length) fn(); else { esperan.push(fn); enviar(); } }
+function enviar() {
+  if (enviando) return;
+  if (!cola.length) { avisar(); const f = esperan; esperan = []; f.forEach(function (g) { g(); }); return; }
+  enviando = true; avisar(t('pendientes')(cola.length));
+  const it = cola[0];
+  llamar('guardarFoto', [MODO, it.datos], function () {
+    cola.shift(); guardarCola(); enviando = false; espera = 0; enviar();
+  }, function (e) {
+    enviando = false;
+    if (e && e.message && ++it.rechazos >= 3) { // el servidor la rechaza (no es la red): reintentar no la arregla
+      cola.shift(); guardarCola(); fallo = t('falloGuardar') + e.message; enviar(); return;
+    }
+    if (!e) avisar(t('sinRed'), true);
+    espera = Math.min(30000, (espera || 1000) * 2);
+    setTimeout(enviar, espera);
+  });
+}
+
 function pedirSalida() {
   if (!hayMarcas() || !window.HTMLDialogElement) { modulos(); return; }
   let d = null;
@@ -354,7 +427,7 @@ function pedirSalida() {
       boton(t('salirLote'), function () { d.close(); modulos(); })])], t('salirTit'));
 }
 function pantalla(hijos, volver) {
-  atras = volver || null; S.enFoto = false;
+  atras = volver || null; S.enFoto = false; S.vista++;
   app.innerHTML = '';
   document.documentElement.lang = S.idioma;
   if (MODO === 'prueba') app.appendChild(el('div', { class: 'aviso-prueba', role: 'status', text: t('prueba') }));
@@ -453,13 +526,17 @@ function modulos() {
 }
 function lote() {
   pantalla([hoja([el('p', { role: 'status', text: t('cargando') })])], modulos);
-  llamar('pedirLote', [MODO, S.codigo, S.modulo], function (l) {
+  const v = S.vista;
+  trasGuardar(function () { if (v === S.vista) llamar('pedirLote', [MODO, S.codigo, S.modulo], function (l) {
+    if (v !== S.vista) return;
     if (!l.length) { finLote(t('sinFotos')); return; }
+    precargar(l);
     S.lote = l; S.i = 0; mostrarFoto();
   }, function (e) {
+    if (v !== S.vista) return;
     pantalla([hoja([el('p', { class: 'error', role: 'alert', text: (e && e.message) || t('errorRed') }),
       el('div', { class: 'acciones par' }, [boton(t('otroLote'), lote), boton(t('cambiar'), modulos, true)])])], modulos);
-  });
+  }); });
 }
 function finLote(msg) {
   const tira = el('ol', { class: 'logo', 'aria-hidden': 'true' }, S.lote.map(function () { return el('li', { style: 'background:var(--tinta)' }); }));
@@ -509,10 +586,10 @@ function mostrarFoto() {
   barra = el('i');
   const mesa = el('div', { class: 'mesa' }, [
     el('div', { class: 'marco' }, [tira, el('span', { text: t('foto') + ' ' + (S.i + 1) + ' ' + t('de') + ' ' + S.lote.length })]),
-    el('img', { src: it.img, alt: t('foto') + ' ' + (S.i + 1) }),
+    imagen(it.img, t('foto') + ' ' + (S.i + 1)),
     el('div', { class: 'avance', 'aria-hidden': 'true' }, [barra]),
     el('button', { type: 'button', class: 'ver', text: t('ampliar'),
-      on: { click: function () { verGrande(it.img.replace('sz=w800', 'sz=w2000'), t('foto') + ' ' + (S.i + 1)); } } })]);
+      on: { click: function () { verGrande(it.img.replace('=w800', '=w2000'), t('foto') + ' ' + (S.i + 1)); } } })]);
   pantalla([el('div', { class: 'eval' }, [mesa, lista])], pedirSalida);
   S.enFoto = true;
   refrescar();
@@ -609,18 +686,16 @@ function guardar(it, coment, b, err, ultima) {
     if (bloques[primero]) bloques[primero].caja.scrollIntoView({ block: 'center' });
     return;
   }
-  err.textContent = ''; b.disabled = true; b.textContent = t('guardando');
+  err.textContent = ''; b.disabled = true;
   const visibles = {};
   Object.keys(v.final).forEach(function (k) { if (v.final[k].origen === 'respuesta') visibles[k] = v.final[k].valor; });
   const datos = { codigo: S.codigo, modulo: S.modulo, foto: it.foto, idioma: S.idioma, segundos: (Date.now() - S.t0) / 1000,
     ayudas: Object.keys(S.ayudas), comentario: coment.value, respuestas: visibles };
-  llamar('guardarFoto', [MODO, datos], function () {
-    S.i++; S.hechas++;
-    if (S.i < S.lote.length) mostrarFoto(); else finLote();
-  }, function (e) {
-    b.disabled = false; b.textContent = t(ultima ? 'guardarFin' : 'guardar'); err.textContent = (e && e.message) || t('errorRed');
-  });
+  encolar(datos);
+  S.i++; S.hechas++;
+  if (S.i < S.lote.length) mostrarFoto(); else finLote();
 }
+enviar(); // lo que quedara sin guardar de la última visita
 inicio();
 </script>
 </body>
